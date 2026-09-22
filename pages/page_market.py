@@ -246,12 +246,13 @@ def _render_sentiment(health):
                 return
             hp = hp or 0; lp = lp or 0
             hi_col = GREEN if (hp >= lp) == good_when_high else RED
+            # 對比條:單一 div,linear-gradient 在 hp% 處分界,左綠右紅填滿整條
+            # (即使 hp+lp≠100 如 adv/dec 有 unchanged,仍以 hp 為分界點,兩色各佔一邊)
             bar = (
-                f'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;'
-                f'background:{GRID};margin:6px 0">'
-                f'<div style="width:{hp:.1f}%;background:{_rgba(GREEN,.85)}"></div>'
-                f'<div style="width:{lp:.1f}%;background:{_rgba(RED,.85)}"></div>'
-                f'</div>'
+                f'<div style="height:10px;border-radius:5px;margin:6px 0;'
+                f'background:linear-gradient(90deg,'
+                f'{_rgba(GREEN,.85)} 0%,{_rgba(GREEN,.85)} {hp:.1f}%,'
+                f'{_rgba(RED,.85)} {hp:.1f}%,{_rgba(RED,.85)} 100%)"></div>'
                 f'<div style="display:flex;justify-content:space-between;'
                 f'font-size:.75em;color:{SUB}">'
                 f'<span style="color:{GREEN}">{hp:.1f}%</span>'
