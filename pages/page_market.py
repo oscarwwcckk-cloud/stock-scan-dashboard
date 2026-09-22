@@ -222,7 +222,6 @@ def _render_sentiment(health):
                 f'<div class="val" style="color:{_fg_color(val)}">{val}</div>'
                 f'<div class="sub" style="{SUB_LG}">{rating}</div></div>',
                 unsafe_allow_html=True)
-            st.caption(f"本機 playwright 抓取:{fg.get('fetched_at','?')}")
         else:
             st.metric("CNN Fear & Greed", "—")
             st.caption("本機未抓取(feargreed.json 不存在或抓失敗)")
@@ -273,8 +272,6 @@ def _render_sentiment(health):
           bd["above_sma50"], bd["below_sma50"])
     _pair(cols[3], "站上 / 跌破 SMA200",
           bd["above_sma200"], bd["below_sma200"])
-    st.caption("Finviz 廣度 · 綠 = 漲/新高/站上均線 · 快取 1h · "
-               f"抓取時間:{bd.get('fetched_at','?')}")
 
 
 def render():
@@ -285,7 +282,6 @@ def render():
     with rc:
         # 純 icon refresh 按鈕(靠右)
         refresh_button(key="refresh_market", help="清除快取並重新抓取 yfinance/Finviz/F&G")
-    st.caption("資料源:yfinance + Finviz(免 OpenD)。`@st.cache_data` 快取 1 小時。")
     health = index_health()
     _render_index_cards(health)
     st.divider()
