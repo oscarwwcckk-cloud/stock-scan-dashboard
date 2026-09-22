@@ -156,10 +156,10 @@ def _fg_color(value):
 
 
 def _render_sector_rotation():
-    st.subheader("🏭 產業類股輪動")
+    st.subheader("🏭 板塊强度")
     rows = sector_rotation()
     if not rows:
-        st.warning("類股輪動資料抓取失敗(yfinance 可能限流)。稍後再試。")
+        st.warning("板塊强度資料抓取失敗(yfinance 可能限流)。稍後再試。")
         return
     df = pd.DataFrame(rows)
     # 表
@@ -167,7 +167,7 @@ def _render_sector_rotation():
     disp.columns = ["Sector", "Bench", "RS", "1d", "5d", "20d", "63d", "N"]
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
-                     "RS Rating", min_value=0, max_value=99, format="%d")})
+                     "RS Rating", min_value=0, max_value=99, format="%d%%")})
     st.caption("RS Rating 1-99(越高越強);1d/5d/20d/63d 為相對 benchmark 的超額報酬%(正綠負紅)。")
     # 熱力圖
     try:
