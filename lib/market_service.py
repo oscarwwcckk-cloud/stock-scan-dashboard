@@ -51,7 +51,7 @@ def index_health() -> dict:
             continue
         try:
             r = market_analysis.compute(key, tkr, c, v)
-            out[key] = {"result": r, "vix": vix_level}
+            out[key] = {"result": r, "vix": vix_level, "close": c}
         except Exception:
             out[key] = None
     return out

@@ -29,7 +29,7 @@ def _page_market():
 
 
 nav = st.navigation([
-    st.Page(_page_scan,  title="Stock Scanning",  icon="🔍", default=True),
-    st.Page(_page_market, title="Market Situation", icon="📊"),
+    st.Page(_page_market, title="Market Situation", icon="📊", default=True),
+    st.Page(_page_scan,  title="Stock Scanning",  icon="🔍"),
 ])
 nav.run()

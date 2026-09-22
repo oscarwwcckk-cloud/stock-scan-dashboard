@@ -36,6 +36,36 @@ def _fmt_pct(v, suffix="%"):
     return f"{v:+.2f}{suffix}" if suffix == "%" else f"{v:.2f}"
 
 
+def _index_chart(close, title=""):
+    """畫 price + MA50 + MA200 線圖(取近 ~126 根 ≈ 6 個月,避免太擠)。
+    仿舊 stock-dashboard 指數圖:三條線,深色飛書風。"""
+    if close is None or len(close) < 2:
+        return
+    s = close.iloc[-126:] if len(close) > 126 else close
+    ma50 = s.rolling(50, min_periods=1).mean()
+    ma200 = s.rolling(200, min_periods=1).mean() if len(s) >= 30 else None
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=s.index, y=s.values, name="Price",
+                             line=dict(color=BLUE, width=2)))
+    fig.add_trace(go.Scatter(x=ma50.index, y=ma50.values, name="MA50",
+                             line=dict(color=ORANGE, width=1.3)))
+    if ma200 is not None:
+        fig.add_trace(go.Scatter(x=ma200.index, y=ma200.values, name="MA200",
+                                 line=dict(color=SUB, width=1.3, dash="dot")))
+    fig.update_layout(
+        height=220, margin=dict(l=8, r=8, t=24, b=8),
+        paper_bgcolor=BG, plot_bgcolor=BG,
+        font=dict(color=TXT, size=10),
+        showlegend=True, legend=dict(
+            orientation="h", y=1.12, x=0, font=dict(size=9)),
+        xaxis=dict(showgrid=False, color=GRID),
+        yaxis=dict(showgrid=True, gridcolor=GRID, color=GRID),
+        title=dict(text=title, font=dict(size=11, color=SUB)) if title else None,
+    )
+    line_hover(fig)
+    st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
+
+
 def _render_index_cards():
     st.subheader("📈 大盤指數健康度")
     health = index_health()
@@ -65,6 +95,8 @@ def _render_index_cards():
                 f"52w {r.low_52w:.1f}–{r.high_52w:.1f} "
                 f"({_fmt_pct(r.pct_from_52w_high)} from high)"
             )
+            _index_chart(d.get("close"), key)
+            st.markdown("")  # 卡間距
     # VIX 情緒
     any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)
     vix = (any_vix or {}).get("vix") if any_vix else None
