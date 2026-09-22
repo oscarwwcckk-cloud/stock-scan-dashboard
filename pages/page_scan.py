@@ -10,7 +10,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from lib.style import apply_dark_theme, refresh_button, ORANGE, GREEN, RED, BLUE, TXT, SUB
+from lib.style import apply_dark_theme, ORANGE, GREEN, RED, BLUE, TXT, SUB
+from lib import local_rescan
 from lib.data_loader import (
     KQ_SETUPS, load_kq, load_sepa,
     kq_signature, sepa_signature,
@@ -108,8 +109,27 @@ def render():
     with tc:
         st.title("🔍 股票篩選")
     with rc:
-        # 純 icon refresh 按鈕(靠右)—— 清 cache 重讀 xlsx(雲端需先重部署才讀到新檔)
-        refresh_button(key="refresh_scan", help="清除快取並重新讀取掃描結果")
+        # 純 icon refresh 按鈕(靠右)。
+        # 本機(OpenD 連得上):重跑 kq-scanner 產新 xlsx → copy 進 data/ → 清快取重讀。
+        # 雲端(連不到 OpenD):只清快取(讀回 committed xlsx;要新資料需先 push 觸發重部署)。
+        local = local_rescan.is_local()
+        help_txt = ("本機:重跑 kq-scanner 並重讀最新結果(約數分鐘)"
+                    if local else "雲端:僅清快取;新資料需先 push 觸發重部署")
+        if st.button("🔄", key="refresh_scan", help=help_txt,
+                     use_container_width=False):
+            if local:
+                with st.spinner("本機重掃中(跑 kq-scanner,約數分鐘)…"):
+                    ok, msg = local_rescan.run_scan()
+                    if ok:
+                        local_rescan.copy_results()
+                    else:
+                        st.error(f"重掃失敗:{msg}")
+                        st.stop()
+            try:
+                st.cache_data.clear()
+            except Exception:
+                pass
+            st.rerun()
 
     # ── 載入(快取鍵用 _sig) ──
     kq = load_kq(kq_signature())
