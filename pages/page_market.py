@@ -36,32 +36,59 @@ def _fmt_pct(v, suffix="%"):
     return f"{v:+.2f}{suffix}" if suffix == "%" else f"{v:.2f}"
 
 
-def _index_chart(close, title=""):
-    """畫 price + MA50 + MA200 線圖(取近 ~126 根 ≈ 6 個月,避免太擠)。
-    仿舊 stock-dashboard 指數圖:三條線,深色飛書風。"""
-    if close is None or len(close) < 2:
+def _index_chart(ohlc, title=""):
+    """TradingView 風格蠟燭圖:K 線(紅漲綠跌)+ 成交量 + MA50/MA200。
+    ohlc: DataFrame(open/high/low/close/volume)。取近 ~126 根(6 個月)。"""
+    if ohlc is None or "close" not in ohlc or len(ohlc) < 2:
         return
-    s = close.iloc[-126:] if len(close) > 126 else close
-    ma50 = s.rolling(50, min_periods=1).mean()
-    ma200 = s.rolling(200, min_periods=1).mean() if len(s) >= 30 else None
+    df = ohlc.iloc[-126:].copy() if len(ohlc) > 126 else ohlc.copy()
+    # 補齊 OHLCV 欄(防缺欄)
+    for col in ("open", "high", "low", "close", "volume"):
+        if col not in df:
+            df[col] = df["close"] if col != "volume" else 0
+    up = df["close"] >= df["open"]                      # 漲(紅)
+    colors = [RED if u else GREEN for u in up]          # futu 配色:紅漲綠跌
+
+    ma50 = df["close"].rolling(50, min_periods=1).mean()
+    ma200 = df["close"].rolling(200, min_periods=1).mean() if len(df) >= 30 else None
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=s.index, y=s.values, name="Price",
-                             line=dict(color=BLUE, width=2)))
-    fig.add_trace(go.Scatter(x=ma50.index, y=ma50.values, name="MA50",
-                             line=dict(color=ORANGE, width=1.3)))
+    # 成交量(放次軸,半透明,顏色隨漲跌)
+    vol_max = float(df["volume"].max()) if df["volume"].max() > 0 else 1
+    fig.add_trace(go.Bar(
+        x=df.index, y=df["volume"], name="Vol",
+        marker_color=[f"rgba({int(RED[1:3],16)},{int(RED[3:5],16)},{int(RED[5:7],16)},0.35)" if u
+                      else f"rgba({int(GREEN[1:3],16)},{int(GREEN[3:5],16)},{int(GREEN[5:7],16)},0.35)"
+                      for u in up],
+        yaxis="y2", hovertemplate="Vol: %{y}<extra></extra>", showlegend=False))
+    # K 線
+    fig.add_trace(go.Candlestick(
+        x=df.index, open=df["open"], high=df["high"], low=df["low"], close=df["close"],
+        name="Price",
+        increasing_line_color=RED, decreasing_line_color=GREEN,
+        increasing_fillcolor=RED, decreasing_fillcolor=GREEN,
+        whiskerwidth=0.4, line=dict(width=0.5)))
+    # MA
+    fig.add_trace(go.Scatter(x=df.index, y=ma50, name="MA50",
+                            line=dict(color=ORANGE, width=1.3), mode="lines"))
     if ma200 is not None:
-        fig.add_trace(go.Scatter(x=ma200.index, y=ma200.values, name="MA200",
-                                 line=dict(color=SUB, width=1.3, dash="dot")))
+        fig.add_trace(go.Scatter(x=df.index, y=ma200, name="MA200",
+                                line=dict(color=SUB, width=1.3, dash="dot"), mode="lines"))
+
     fig.update_layout(
-        height=220, margin=dict(l=8, r=8, t=24, b=8),
+        height=300, margin=dict(l=8, r=8, t=24, b=8),
         paper_bgcolor=BG, plot_bgcolor=BG,
         font=dict(color=TXT, size=10),
-        showlegend=True, legend=dict(
-            orientation="h", y=1.12, x=0, font=dict(size=9)),
-        xaxis=dict(showgrid=False, color=GRID),
-        yaxis=dict(showgrid=True, gridcolor=GRID, color=GRID),
+        showlegend=True, legend=dict(orientation="h", y=1.1, x=0, font=dict(size=9)),
+        xaxis=dict(rangeslider=dict(visible=False), showgrid=False, color=GRID,
+                   rangebreaks=[dict(bounds=["sat","mon"], pattern="day of week")]),
+        yaxis=dict(domain=[0.22, 1], showgrid=True, gridcolor=GRID, color=GRID,
+                   side="right"),
+        yaxis2=dict(domain=[0, 0.18], showgrid=False, color=GRID, side="right",
+                    range=[0, vol_max * 1.15]),
         title=dict(text=title, font=dict(size=11, color=SUB)) if title else None,
     )
+    fig.update_traces(selector=dict(type="candlestick"), hoverlabel=dict(bgcolor=CARD))
     line_hover(fig)
     st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
 
@@ -95,7 +122,7 @@ def _render_index_cards():
                 f"52w {r.low_52w:.1f}–{r.high_52w:.1f} "
                 f"({_fmt_pct(r.pct_from_52w_high)} from high)"
             )
-            _index_chart(d.get("close"), key)
+            _index_chart(d.get("ohlc"), key)
             st.markdown("")  # 卡間距
     # VIX 情緒
     any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)

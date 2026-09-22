@@ -35,23 +35,26 @@ def index_health() -> dict:
     """三指數(SPX/NDX/DJI)技術健康度 + VIX。回傳 {key: {result: MarketAnalysisResult, vix: float}}。
     任一指數抓失敗就略過,不影響其他。"""
     out: dict[str, dict] = {}
-    # 一次抓三指數 + VIX 的 OHLCV
+    # 一次抓三指數 + VIX 的完整 OHLCV(畫 K 線 + 量 + 算 MA/RSI/dist days)
     ticks = list(INDEX_TICKS.keys()) + [VIX_TICK]
     try:
-        closes, vols = yfinance_fetcher.fetch_ohlcv_batch(ticks, period=_SECTOR_PERIOD)
+        ohlc_map = yfinance_fetcher.fetch_ohlc_batch(ticks, period=_SECTOR_PERIOD)
     except Exception:
-        closes, vols = {}, {}
-    vix_close = closes.get(VIX_TICK)
-    vix_level = float(vix_close.iloc[-1]) if vix_close is not None and len(vix_close) else None
+        ohlc_map = {}
+    vix_df = ohlc_map.get(VIX_TICK)
+    vix_level = None
+    if vix_df is not None and "close" in vix_df and len(vix_df):
+        vix_level = float(vix_df["close"].iloc[-1])
     for tkr, key in INDEX_TICKS.items():
-        c = closes.get(tkr)
-        v = vols.get(tkr)
-        if c is None or len(c) < 2:
+        df = ohlc_map.get(tkr)
+        if df is None or "close" not in df or len(df) < 2:
             out[key] = None
             continue
+        c = df["close"]
+        v = df.get("volume")
         try:
             r = market_analysis.compute(key, tkr, c, v)
-            out[key] = {"result": r, "vix": vix_level, "close": c}
+            out[key] = {"result": r, "vix": vix_level, "ohlc": df}
         except Exception:
             out[key] = None
     return out
