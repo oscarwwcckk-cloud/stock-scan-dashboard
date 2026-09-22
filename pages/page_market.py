@@ -164,7 +164,7 @@ def _render_sector_rotation():
     df = pd.DataFrame(rows)
     # 表
     disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n"]].copy()
-    disp.columns = ["Sector", "Bench", "RS", "10d", "30d", "60d", "N"]
+    disp.columns = ["Sector", "Bench", "RS", "10d (%)", "30d (%)", "60d (%)", "N"]
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
