@@ -40,7 +40,7 @@ SECTOR_MAP: dict[str, dict] = {
         "group": "tech",
         "constituents": [
             "AMZN", "MSFT", "GOOG", "GOOGL", "ORCL",
-            "IBM", "RCLOUD", "NET", "FSLY",
+            "IBM", "NET", "FSLY",
         ],
     },
     "ai_networking": {
@@ -48,8 +48,8 @@ SECTOR_MAP: dict[str, dict] = {
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
-            "ANET", "CSCO", "JNPR", "LITE", "VIAV", "CIEN",
-            "INFN", "CALX", "COMM",
+            "ANET", "CSCO", "LITE", "VIAV", "CIEN",
+            "CALX",
         ],
     },
     "cybersecurity": {
@@ -58,7 +58,7 @@ SECTOR_MAP: dict[str, dict] = {
         "group": "tech",
         "constituents": [
             "CRWD", "PANW", "ZS", "S", "FTNT", "OKTA",
-            "CYBR", "RPD", "QLYS", "TENB", "VRNS",
+            "RPD", "QLYS", "TENB", "VRNS",
         ],
     },
     "enterprise_software": {
@@ -67,7 +67,7 @@ SECTOR_MAP: dict[str, dict] = {
         "group": "tech",
         "constituents": [
             "CRM", "NOW", "SAP", "ADBE", "WDAY", "INTU",
-            "TEAM", "HCP", "HUBS", "VEEV", "DOCU",
+            "TEAM", "HUBS", "VEEV", "DOCU",
         ],
     },
     "fintech": {
@@ -75,69 +75,81 @@ SECTOR_MAP: dict[str, dict] = {
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
-            "SQ", "PYPL", "AFRM", "COIN", "HOOD", "SOFI",
-            "UPST", "LC", "FLYW", "SMAR",
+            "XYZ", "PYPL", "AFRM", "COIN", "HOOD", "SOFI",
+            "UPST", "HAPN", "FLYW",
         ],
     },
     # ── Traditional (benchmark: SPY) ─────────────────────────────────────────
+    # 成分股來自 SPDR 板塊 ETF 每日持倉(holdings_fetcher 動態抓),永遠新鮮。
+    # etf 欄 = 該板塊對應的 SPDR 板塊 ETF ticker。
     "healthcare": {
         "name": "Healthcare & Biotech",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLV",
         "yfinance_sectors": ["Healthcare"],
     },
     "financials": {
         "name": "Financials",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLF",
         "yfinance_sectors": ["Financial Services"],
     },
     "energy": {
         "name": "Energy",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLE",
         "yfinance_sectors": ["Energy"],
     },
     "industrials": {
         "name": "Industrials",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLI",
         "yfinance_sectors": ["Industrials"],
     },
     "consumer_discretionary": {
         "name": "Consumer Discretionary",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLY",
         "yfinance_sectors": ["Consumer Cyclical"],
     },
     "consumer_staples": {
         "name": "Consumer Staples",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLP",
         "yfinance_sectors": ["Consumer Defensive"],
     },
     "materials": {
         "name": "Materials & Mining",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLB",
         "yfinance_sectors": ["Basic Materials"],
     },
     "real_estate": {
         "name": "Real Estate",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLRE",
         "yfinance_sectors": ["Real Estate"],
     },
     "utilities": {
         "name": "Utilities",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLU",
         "yfinance_sectors": ["Utilities"],
     },
     "communication": {
         "name": "Communication Services",
         "benchmark": "SPY",
         "group": "traditional",
+        "etf": "XLC",
         "yfinance_sectors": ["Communication Services"],
     },
 }

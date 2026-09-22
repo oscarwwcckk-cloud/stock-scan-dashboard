@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from lib import market_analysis, rs_engine, sector_map, finviz_scraper, yfinance_fetcher
+from lib import market_analysis, rs_engine, sector_map, finviz_scraper, yfinance_fetcher, holdings_fetcher
 from lib.sector_map import SECTOR_MAP, INDEX_TICKERS
 
 # 指數 ticker → 友善鍵
@@ -63,15 +63,23 @@ def index_health() -> dict:
 @st.cache_data(ttl=3600, show_spinner=False)
 def sector_rotation() -> list[dict]:
     """18 類股 RS 排名。回傳 list[dict] 已按 rs_rating desc 排序,
-    每項 {key, name, benchmark, rs_rating, rs_score, rs_1d, rs_5d, rs_20d, rs_63d, n}。
-    抓不到就回 []。"""
+    每項 {key, name, benchmark, rs_rating, rs_score, rs_10d, rs_30d, rs_60d, n}。
+    抓不到就回 []。
+
+    成分股來源:
+      - tech 細分板塊(8):sector_map 顯式 constituents(已修過時 ticker)
+      - traditional 板塊(10):SPDR 板塊 ETF 每日持倉(holdings_fetcher 動態抓,永遠新鮮)
+    """
     try:
         # 收集各類股成分股,依 benchmark 分桶
         buckets: dict[str, dict[str, list[str]]] = {}  # benchmark -> {sector_key: [tickers]}
         for skey, info in SECTOR_MAP.items():
             bench = info.get("benchmark", "SPY")
-            cons = info.get("constituents") or []
-            buckets.setdefault(bench, {})[skey] = list(cons)
+            cons = list(info.get("constituents") or [])
+            # traditional 板塊(有 etf 欄、無 constituents):動態抓 SPDR 持倉
+            if not cons and info.get("etf"):
+                cons = holdings_fetcher.fetch_spdr_holdings(info["etf"])
+            buckets.setdefault(bench, {})[skey] = cons
         # SPY 桶補 traditional 類股的 universe 成分(assign_sector 太慢,這裡只用顯式 constituents)
         rows: list[dict] = []
         for bench, sec2tick in buckets.items():
