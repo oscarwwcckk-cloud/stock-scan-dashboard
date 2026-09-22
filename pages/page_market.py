@@ -168,46 +168,40 @@ def _render_sector_rotation():
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
-    st.caption("RS Rating 1-99(越高越強);氣泡圖:X=10d 短期超額、Y=60d 長期超額、"
-               "色=30d 正綠負紅、大小=RS Rating。右上 = 短長期雙強。")
-    # 氣泡圖:X=10d 短期超額、Y=60d 長期超額、色=30d 正綠負紅、大小=RS Rating
+    st.caption("RS Rating 1-99(越高越強);熱力圖每格 = 該板塊相對 benchmark 的超額報酬 %(正綠負紅)。")
+    # 熱力圖(清楚版):每格中央大字數值、板塊名左側水平、綠-暗-紅雙色階、格線分明
     try:
-        import plotly.express as px
-        x = df["rs_10d"].astype(float).tolist()
-        y = df["rs_60d"].astype(float).tolist()
-        col30 = df["rs_30d"].astype(float).tolist()
-        size = [max(8, (s or 0) * 1.2) for s in df["rs_rating"].astype(float).tolist()]
-        fig = go.Figure(data=go.Scatter(
-            x=x, y=y, mode="markers+text",
-            text=df["name"], textposition="top center",
-            textfont=dict(size=9, color=SUB),
-            marker=dict(
-                size=size, opacity=0.8, line=dict(width=1, color=BG),
-                # 30d 正綠負紅
-                color=[GREEN if v >= 0 else RED for v in col30]),
-            hovertemplate="<b>%{text}</b><br>"
-                          "10d: %{x:+.2f}% · 60d: %{y:+.2f}%<extra></extra>",
-            showlegend=False))
-        # 零軸線 + 象限分隔(右上=雙強、左下=雙弱)
+        import numpy as _np
+        cols = ["rs_10d", "rs_30d", "rs_60d"]
+        mat = df[cols].astype(float).values
+        ylabels = df["name"].tolist()
+        xlabels = ["10d", "30d", "60d"]
+        # 文字標籤:每格顯示 +X.X / -X.X(None 顯示 —)
+        texts = [[("—" if _np.isnan(v) else f"{v:+.1f}") for v in row] for row in mat]
+        # 雙色階:負=紅 → 0=卡片底 → 正=綠(zmid=0 自動對稱)
+        colorscale = [
+            [0.0, "#F5455C"],    # 最負 = RED
+            [0.45, "#7A3A44"],   # 弱負 = 暗紅
+            [0.5, CARD],         # 0 = 卡片底色
+            [0.55, "#2E6B5C"],   # 弱正 = 暗綠
+            [1.0, "#2DD4A7"],    # 最正 = GREEN
+        ]
+        fig = go.Figure(data=go.Heatmap(
+            z=mat, x=xlabels, y=ylabels, colorscale=colorscale, zmid=0,
+            text=texts, texttemplate="%{text}",
+            textfont=dict(size=13, color=TXT, family="monospace"),
+            xgap=3, ygap=3,
+            hovertemplate="<b>%{y}</b><br>%{x} 超額報酬: %{z:+.2f}%<extra></extra>",
+            showscale=False))
         fig.update_layout(
-            height=520, margin=dict(l=50, r=20, t=20, b=50),
-            paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=10),
-            xaxis=dict(title="10d 超額報酬 (%) (短期)", color=SUB, gridcolor=GRID,
-                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5),
-            yaxis=dict(title="60d 超額報酬 (%) (長期)", color=SUB, gridcolor=GRID,
-                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5))
-        # 象限標示
-        xmid = 0; ymid = 0
-        xmax, xmin = max(x + [0]), min(x + [0])
-        ymax, ymin = max(y + [0]), min(y + [0])
-        fig.add_annotation(x=xmax, y=ymax, text="↑ 短長期雙強", showarrow=False,
-                            xanchor="right", yanchor="top", font=dict(color=GREEN, size=9))
-        fig.add_annotation(x=xmin, y=ymin, text="↓ 雙弱", showarrow=False,
-                            xanchor="left", yanchor="bottom", font=dict(color=RED, size=9))
-        line_hover(fig)
+            height=max(420, 30 * len(df) + 60), margin=dict(l=10, r=10, t=10, b=30),
+            paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=11),
+            xaxis=dict(side="top", tickfont=dict(size=11, color=SUB), showgrid=False),
+            yaxis=dict(autorange="reversed", tickfont=dict(size=11, color=TXT),
+                       showgrid=False))
         st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
     except Exception:
-        st.caption("板塊氣泡圖繪製失敗")
+        st.caption("板塊熱力圖繪製失敗")
 
 
 def _render_sentiment(health):
