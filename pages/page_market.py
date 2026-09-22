@@ -230,33 +230,47 @@ def _render_sentiment(health):
         return
     cols = st.columns(4)
 
-    def _pair(col, title_hi, title_lo, hi, lo, good_when_high=True):
-        """一張卡顯示 高/低 兩個 % + 件數。good_when_high=True:高比例=綠。"""
+    def _rgba(hexc, a):
+        return f"rgba({int(hexc[1:3],16)},{int(hexc[3:5],16)},{int(hexc[5:7],16)},{a})"
+
+    def _pair(col, title, hi, lo, good_when_high=True):
+        """一張卡:大 %(站上/漲/新高,綠)+ 綠紅比例對比條 + 對立 % + 件數。"""
         with col:
             hp, hc = hi["pct"], hi["count"]
             lp, lc = lo["pct"], lo["count"]
             if hp is None and lp is None:
-                st.metric(title_hi, "—")
+                st.metric(title, "—")
                 return
             hp = hp or 0; lp = lp or 0
             hi_col = GREEN if (hp >= lp) == good_when_high else RED
+            bar = (
+                f'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;'
+                f'background:{GRID};margin:6px 0">'
+                f'<div style="width:{hp:.1f}%;background:{_rgba(GREEN,.85)}"></div>'
+                f'<div style="width:{lp:.1f}%;background:{_rgba(RED,.85)}"></div>'
+                f'</div>'
+                f'<div style="display:flex;justify-content:space-between;'
+                f'font-size:.75em;color:{SUB}">'
+                f'<span style="color:{GREEN}">{hp:.1f}%</span>'
+                f'<span style="color:{RED}">{lp:.1f}%</span></div>'
+            )
             st.markdown(
-                f'<div class="kpi"><div class="lbl">{title_hi}</div>'
-                f'<div class="val" style="color:{hi_col}">{hp:.1f}%'
-                f'<span style="font-size:.7em;color:{SUB}"> / {lp:.1f}%</span></div>'
-                f'<div class="sub">{hc or 0} / {lc or 0} 檔</div>'
-                f'<div class="sub" style="color:{SUB};font-size:.85em">{title_lo}</div></div>',
+                f'<div class="kpi"><div class="lbl">{title}</div>'
+                f'<div class="val" style="color:{hi_col}">{hp:.1f}%</div>'
+                f'{bar}'
+                f'<div class="sub" style="color:{SUB}">{hc or 0} / {lc or 0} 檔</div></div>',
                 unsafe_allow_html=True)
 
-    _pair(cols[0], "上漲", "下跌",
+    _pair(cols[0], "上漲 / 下跌",
           bd["advancing"], bd["declining"])
-    _pair(cols[1], "新高", "新低",
+    _pair(cols[1], "新高 / 新低",
           bd["new_high"], bd["new_low"])
-    _pair(cols[2], "站上 SMA50", "跌破 SMA50",
+    _pair(cols[2], "站上 / 跌破 SMA50",
           bd["above_sma50"], bd["below_sma50"])
-    _pair(cols[3], "站上 SMA200", "跌破 SMA200",
+    _pair(cols[3], "站上 / 跌破 SMA200",
           bd["above_sma200"], bd["below_sma200"])
-    st.caption(f"Finviz 廣度 · 快取 1h · 抓取時間:{bd.get('fetched_at','?')}")
+    st.caption("Finviz 廣度 · 綠 = 漲/新高/站上均線 · 快取 1h · "
+               f"抓取時間:{bd.get('fetched_at','?')}")
 
 
 def render():
