@@ -169,20 +169,32 @@ def _render_sector_rotation():
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
     st.caption("RS Rating 1-99(越高越強);10d/30d/60d 為相對 benchmark 的超額報酬%(正綠負紅)。")
-    # 熱力圖
+    # 分組長條圖:18 板塊 × (10d/30d/60d) 超額報酬,正綠負紅,長度看大小
     try:
-        mat = df[["rs_10d", "rs_30d", "rs_60d"]].astype(float).values
-        fig = go.Figure(data=go.Heatmap(
-            z=mat, x=["10d", "30d", "60d"],
-            y=df["name"], colorscale="RdYlGn",
-            zmid=0, hovertemplate="%{y} %{x}: %{z:+.2f}%<extra></extra>"))
+        names = df["name"].tolist()
+        periods = [("10d", "rs_10d"), ("30d", "rs_30d"), ("60d", "rs_60d")]
+        fig = go.Figure()
+        for plabel, col in periods:
+            vals = df[col].astype(float).tolist()
+            fig.add_trace(go.Bar(
+                name=plabel, x=names, y=vals,
+                # 每根 bar 依值正負上色:正綠負紅
+                marker_color=[GREEN if v >= 0 else RED for v in vals],
+                hovertemplate=f"{plabel} %{{x}}: %{{y:+.2f}}%<extra></extra>",
+                text=[f"{v:+.1f}" for v in vals], textposition="outside",
+                textfont=dict(size=9, color=SUB)))
         fig.update_layout(
-            height=max(300, 26 * len(df)), margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor=BG, plot_bgcolor=BG,
-            font=dict(color=TXT), yaxis=dict(autorange="reversed"))
+            barmode="group", height=420, margin=dict(l=10, r=10, t=10, b=120),
+            paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=10),
+            showlegend=True, legend=dict(orientation="h", y=1.08, font=dict(size=9)),
+            bargap=0.35, bargroupgap=0.08,
+            xaxis=dict(tickangle=-40, tickfont=dict(size=9), color=SUB, showgrid=False),
+            yaxis=dict(title="超額報酬 (%)", color=SUB, gridcolor=GRID,
+                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1))
+        line_hover(fig)
         st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
     except Exception:
-        st.caption("熱力圖繪製失敗")
+        st.caption("板塊長條圖繪製失敗")
 
 
 def _render_sentiment(health):
