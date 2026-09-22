@@ -168,35 +168,36 @@ def _render_sector_rotation():
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
-    st.caption("RS Rating 1-99(越高越強);漏斗 = 60d 超額報酬由強到弱排序"
-               "(寬度=幅度、綠=跑贏 benchmark、紅=落後、標籤=真實帶號值)。")
-    # 漏斗圖:60d 超額報酬排序。funnel 要正值才畫得出形 → 寬度用絕對值、
-    # 顏色區分正負(綠=跑贏/紅=落後),text 標真實帶號值。由大到小排。
+    st.caption("RS Rating 1-99(越高越強);柱形 = 60d 超額報酬由強到弱排序"
+               "(正=跑贏 benchmark 綠、負=落後紅、長度=幅度)。")
+    # 水平柱形圖:60d 超額報酬排序,正綠負紅。可正可負(零軸分隔)。
     try:
-        import numpy as _np
         d = df[["name", "rs_60d"]].dropna().copy()
         d["rs_60d"] = d["rs_60d"].astype(float)
-        d = d.sort_values("rs_60d", ascending=False)  # 最強在頂
+        d = d.sort_values("rs_60d", ascending=True)  # 升冪 → 最強在頂(plotly y 由下而上)
         names = d["name"].tolist()
         vals = d["rs_60d"].tolist()
-        widths = [abs(v) if abs(v) > 0.05 else 0.05 for v in vals]  # 防 0 寬
         colors = [GREEN if v >= 0 else RED for v in vals]
         labels = [f"{v:+.2f}%" for v in vals]
-        fig = go.Figure(data=go.Funnel(
-            y=names, x=widths,
-            text=labels, textinfo="text",
-            textposition="inside",
-            textfont=dict(size=12, color=TXT),
-            marker=dict(color=colors, line=dict(width=1, color=BG)),
-            hovertemplate="<b>%{y}</b><br>60d 超額報酬: %{text}<extra></extra>",
-            connector=dict(line=dict(color=GRID, width=1))))
+        fig = go.Figure(data=go.Bar(
+            y=names, x=vals, orientation="h",
+            marker_color=colors,
+            text=labels, textposition="outside",
+            textfont=dict(size=11, color=SUB),
+            hovertemplate="<b>%{y}</b><br>60d 超額報酬: %{x:+.2f}%<extra></extra>",
+            showlegend=False))
         fig.update_layout(
-            height=max(420, 28 * len(names) + 50), margin=dict(l=10, r=60, t=10, b=30),
+            height=max(440, 26 * len(names) + 50), margin=dict(l=10, r=60, t=10, b=30),
             paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=11),
-            yaxis=dict(autorange="reversed"))  # 最強在最上
+            bargap=0.5,
+            xaxis=dict(title="60d 超額報酬 (%)", color=SUB, gridcolor=GRID,
+                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5,
+                       tickfont=dict(size=10)),
+            yaxis=dict(tickfont=dict(size=11, color=TXT), showgrid=False, autorange=True))
+        line_hover(fig)
         st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
     except Exception:
-        st.caption("板塊漏斗圖繪製失敗")
+        st.caption("板塊柱形圖繪製失敗")
 
 
 def _render_sentiment(health):
