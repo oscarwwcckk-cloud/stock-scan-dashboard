@@ -18,6 +18,9 @@ from lib.style import (
 from lib.market_service import (
     index_health, sector_rotation, market_breadth, breadth_available,
 )
+from lib.data_loader import (
+    load_feargreed, feargreed_signature,
+)
 
 # trend_state → 顏色
 TREND_COLOR = {
@@ -91,9 +94,8 @@ def _index_chart(ohlc, title=""):
     st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
 
 
-def _render_index_cards():
+def _render_index_cards(health):
     st.subheader("📈 大盤指數健康度")
-    health = index_health()
     keys = ["SPX", "NDX", "DJI"]
     cols = st.columns(len(keys))
     for c, key in zip(cols, keys):
@@ -122,17 +124,6 @@ def _render_index_cards():
             )
             _index_chart(d.get("ohlc"), key)
             st.markdown("")  # 卡間距
-    # VIX 情緒
-    any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)
-    vix = (any_vix or {}).get("vix") if any_vix else None
-    if vix is not None:
-        vcol = GREEN if vix < 20 else (ORANGE if vix < 25 else RED)
-        st.markdown(
-            f'<div class="kpi" style="display:inline-block;min-width:160px">'
-            f'<div class="lbl">VIX 情緒</div>'
-            f'<div class="val" style="color:{vcolor(vix)}">{vix:.1f}</div>'
-            f'<div class="sub">{vix_label(vix)}</div></div>',
-            unsafe_allow_html=True)
 
 
 def vcolor(vix):
@@ -147,6 +138,21 @@ def vix_label(vix):
     if vix < 25:
         return "謹慎"
     return "恐慌/避險升溫"
+
+
+def _fg_color(value):
+    """F&G 值 0-100 → 色(0 恐懼紅,50 中性,100 貪婪綠)。"""
+    if value is None:
+        return GRID
+    if value < 25:
+        return RED
+    if value < 45:
+        return ORANGE
+    if value <= 55:
+        return SUB
+    if value < 75:
+        return TEAL
+    return GREEN
 
 
 def _render_sector_rotation():
@@ -179,35 +185,87 @@ def _render_sector_rotation():
         st.caption("熱力圖繪製失敗")
 
 
-def _render_breadth():
-    st.subheader("🌍 市場廣度 / 情緒")
+def _render_sentiment(health):
+    """情緒面板:VIX + Fear & Greed 一行,Finviz 四項廣度一行。
+
+    health = index_health() 結果(取 VIX)。F&G 走 load_feargreed(本機 playwright 抓的 JSON)。
+    Finviz 廣度走 market_breadth()(雲端 egress 被擋時四項全 None → 該行降級顯示)。"""
+    st.subheader("🌡️ 市場情緒 / 廣度")
+    keys = ["SPX", "NDX", "DJI"]
+    any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)
+    vix = (any_vix or {}).get("vix") if any_vix else None
+
+    # ── Fear & Greed(本機抓的 JSON,可能過時或抓失敗)──
+    fg = load_feargreed(feargreed_signature())
+
+    # ── 第一行:VIX + Fear & Greed ──
+    c1, c2 = st.columns(2)
+    with c1:
+        if vix is not None:
+            st.markdown(
+                f'<div class="kpi"><div class="lbl">VIX 情緒</div>'
+                f'<div class="val" style="color:{vcolor(vix)}">{vix:.1f}</div>'
+                f'<div class="sub">{vix_label(vix)}</div></div>',
+                unsafe_allow_html=True)
+        else:
+            st.metric("VIX 情緒", "—")
+    with c2:
+        if fg and fg.get("value") is not None:
+            val = fg["value"]
+            rating = fg.get("rating", "?")
+            st.markdown(
+                f'<div class="kpi"><div class="lbl">CNN Fear & Greed</div>'
+                f'<div class="val" style="color:{_fg_color(val)}">{val}</div>'
+                f'<div class="sub">{rating}</div></div>',
+                unsafe_allow_html=True)
+            st.caption(f"本機 playwright 抓取:{fg.get('fetched_at','?')}")
+        else:
+            st.metric("CNN Fear & Greed", "—")
+            st.caption("本機未抓取(feargreed.json 不存在或抓失敗)")
+
+    # ── 第二行:Finviz 四項廣度(Adv/Dec · NH/NL · Above SMA50 · Above SMA200)──
     bd = market_breadth()
     if not breadth_available(bd):
-        st.warning("廣度資料無法取得(雲端對 Finviz egress 可能被擋,或本機網路問題)。")
+        st.info("Finviz 廣度無法取得(雲端 egress 可能被擋;本機可正常顯示)。")
         return
     cols = st.columns(4)
-    def _card(col, title, pct, count, good_when_high=True):
+
+    def _pair(col, title_hi, title_lo, hi, lo, good_when_high=True):
+        """一張卡顯示 高/低 兩個 % + 件數。good_when_high=True:高比例=綠。"""
         with col:
-            if pct is None:
-                st.metric(title, "—")
+            hp, hc = hi["pct"], hi["count"]
+            lp, lc = lo["pct"], lo["count"]
+            if hp is None and lp is None:
+                st.metric(title_hi, "—")
                 return
-            color = GREEN if (pct >= 50) == good_when_high else RED
-            st.metric(title, f"{pct:.1f}%", f"{count or 0} 檔")
-    a = bd["advancing"]["pct"]; d = bd["declining"]["pct"]
-    _card(cols[0], "上漲", a, bd["advancing"]["count"])
-    _card(cols[1], "下跌", d, bd["declining"]["count"], good_when_high=False)
-    _card(cols[2], "站上 SMA50", bd["above_sma50"]["pct"], bd["above_sma50"]["count"])
-    _card(cols[3], "站上 SMA200", bd["above_sma200"]["pct"], bd["above_sma200"]["count"])
-    st.caption(f"新高 {bd['new_high']['pct'] or '—'}% / 新低 {bd['new_low']['pct'] or '—'}%　·　"
-               f"快取 1h。抓取時間:{bd.get('fetched_at','?')}")
+            hp = hp or 0; lp = lp or 0
+            hi_col = GREEN if (hp >= lp) == good_when_high else RED
+            st.markdown(
+                f'<div class="kpi"><div class="lbl">{title_hi}</div>'
+                f'<div class="val" style="color:{hi_col}">{hp:.1f}%'
+                f'<span style="font-size:.7em;color:{SUB}"> / {lp:.1f}%</span></div>'
+                f'<div class="sub">{hc or 0} / {lc or 0} 檔</div>'
+                f'<div class="sub" style="color:{SUB};font-size:.85em">{title_lo}</div></div>',
+                unsafe_allow_html=True)
+
+    _pair(cols[0], "上漲", "下跌",
+          bd["advancing"], bd["declining"])
+    _pair(cols[1], "新高", "新低",
+          bd["new_high"], bd["new_low"])
+    _pair(cols[2], "站上 SMA50", "跌破 SMA50",
+          bd["above_sma50"], bd["below_sma50"])
+    _pair(cols[3], "站上 SMA200", "跌破 SMA200",
+          bd["above_sma200"], bd["below_sma200"])
+    st.caption(f"Finviz 廣度 · 快取 1h · 抓取時間:{bd.get('fetched_at','?')}")
 
 
 def render():
     apply_dark_theme()
     st.title("📊 Market Situation")
     st.caption("資料源:yfinance + Finviz(免 OpenD)。`@st.cache_data` 快取 1 小時。")
-    _render_index_cards()
+    health = index_health()
+    _render_index_cards(health)
+    st.divider()
+    _render_sentiment(health)
     st.divider()
     _render_sector_rotation()
-    st.divider()
-    _render_breadth()

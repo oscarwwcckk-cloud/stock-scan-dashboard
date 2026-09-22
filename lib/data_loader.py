@@ -5,6 +5,8 @@
 @st.cache_data 鍵用 lib.cache._sig(內容指紋),破解 Streamlit Cloud mtime 陷阱 ——
 data-only commit 熱同步進同一行程時 mtime 不一定變,但內容指紋一變必失效。
 """
+import json
+
 import pandas as pd
 import streamlit as st
 
@@ -87,3 +89,26 @@ def kq_signature() -> str:
 
 def sepa_signature() -> str:
     return _sig(SEPA_XLSX)
+
+
+# ── CNN Fear & Greed(本機 playwright 抓,存 data/feargreed.json,commit 進 repo)──
+FEARGREED_JSON = f"{DATA_DIR}/feargreed.json"
+
+
+@st.cache_data(show_spinner=False)
+def load_feargreed(_sig_key: str) -> dict | None:
+    """讀 data/feargreed.json。_sig_key 传 _sig(FEARGREED_JSON) 讓內容變即重讀。
+    回 {value, rating, driving_text, fetched_at, ...} 或 None(檔不存在/格式壞)。"""
+    try:
+        with open(FEARGREED_JSON, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        # value 可能是 None(抓取失敗);rating 可能 '?'
+        if not isinstance(d, dict):
+            return None
+        return d
+    except Exception:
+        return None
+
+
+def feargreed_signature() -> str:
+    return _sig(FEARGREED_JSON)

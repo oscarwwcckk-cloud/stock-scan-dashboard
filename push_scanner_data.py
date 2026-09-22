@@ -29,6 +29,7 @@ DST_KQ = os.path.join(DATA_DIR, "kq_scan_results.xlsx")
 DST_SEPA = os.path.join(DATA_DIR, "sepa_scan_results.xlsx")
 
 SCAN_INFO = os.path.join(DATA_DIR, "scan_info.json")
+FEARGREED_FILE = os.path.join(DATA_DIR, "feargreed.json")
 STATUS_FILE = os.path.join(REPO_DIR, "refresh_status.json")
 LOG_FILE = os.path.join(REPO_DIR, "sync_agent.log")
 
@@ -94,8 +95,25 @@ def write_status(ok: bool, message: str, kq_date=None, sepa_date=None):
         json.dump(status, f, ensure_ascii=False, indent=2)
 
 
+def refresh_feargreed():
+    """本機用 playwright 抓 CNN Fear & Greed,存 data/feargreed.json。
+    抓失敗(沒裝 playwright / 網路)就靜默略過 —— 不擋 scanner sync。"""
+    try:
+        import importlib
+        fg = importlib.import_module("fetch_feargreed")
+        result = fg.fetch()
+        log(f"  fear&greed 刷新: value={result.get('value')} rating={result.get('rating')}")
+        return result
+    except Exception as e:
+        log(f"  fear&greed 抓取失敗(略過):{repr(e)[:200]}")
+        return None
+
+
 def main(check_only=False):
     log("=== 開始同步 scanner 資料 ===")
+
+    # 0) 刷新 CNN Fear & Greed(本機 playwright;失敗不擋 sync)
+    refresh_feargreed()
 
     # 1) copy xlsx(來源不存在就略過該檔,但至少要有其一)
     copied = []
@@ -136,7 +154,7 @@ def main(check_only=False):
     # 3) commit + push(帶 rebase 重試)
     try:
         git("add", "data/kq_scan_results.xlsx", "data/sepa_scan_results.xlsx",
-            "data/scan_info.json", "refresh_status.json", check=True)
+            "data/scan_info.json", "data/feargreed.json", "refresh_status.json", check=True)
         st = git("status", "--porcelain", check=True)
         if not st.stdout.strip():
             log("  無變更,略過 commit/push")
