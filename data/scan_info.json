@@ -1,0 +1,21 @@
+{
+  "synced_at": "2026-09-22T14:18:06",
+  "kq_scan_date": "2026-09-19 20:50:50",
+  "sepa_scan_date": "2026-07-23 18:39",
+  "kq_rows": {
+    "EP Results": 2,
+    "HTF Results": 30,
+    "Breakout Results": 43,
+    "VCP Results": 22,
+    "CWH Results": 21,
+    "Double Bottom": 82,
+    "IPO Base": 3,
+    "Flat Base": 2,
+    "Scan Info": 12
+  },
+  "sepa_rows": {
+    "SEPA Results": 23,
+    "Pattern Setups": 10,
+    "Scan Info": 4
+  }
+}
