@@ -148,3 +148,21 @@ def apply_dark_theme():
       .block-container {{ padding-left:0.6rem; padding-right:0.6rem; }}
   }}
 </style>""", unsafe_allow_html=True)
+
+
+def refresh_button(key: str = "refresh", icon: str = "🔄", help: str = "清除快取並重新抓取"):
+    """頁首右側的純 icon refresh 按鈕。點擊清掉所有 @st.cache_data 並 rerun。
+
+    label 只放一個 emoji(無文字),符合「只用一個 sign」的要求。
+    回傳 bool(是否被點);此 helper 內部已處理 rerun,caller 不必再判斷。
+    """
+    clicked = st.button(icon, key=key, help=help,
+                        use_container_width=False)
+    if clicked:
+        try:
+            st.cache_data.clear()
+        except Exception:
+            pass
+        st.rerun()
+    return clicked
+

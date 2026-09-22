@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from lib.style import (
-    apply_dark_theme, kpi_card, BG, CARD, GRID, TXT, SUB,
+    apply_dark_theme, kpi_card, refresh_button, BG, CARD, GRID, TXT, SUB,
     ORANGE, BLUE, GREEN, RED, TEAL, _chart_cfg, line_hover,
 )
 from lib.market_service import (
@@ -277,7 +277,12 @@ def _render_sentiment(health):
 
 def render():
     apply_dark_theme()
-    st.title("📊 Market Situation")
+    tc, rc = st.columns([8, 1])
+    with tc:
+        st.title("📊 Market Situation")
+    with rc:
+        # 純 icon refresh 按鈕(靠右)
+        refresh_button(key="refresh_market", help="清除快取並重新抓取 yfinance/Finviz/F&G")
     st.caption("資料源:yfinance + Finviz(免 OpenD)。`@st.cache_data` 快取 1 小時。")
     health = index_health()
     _render_index_cards(health)

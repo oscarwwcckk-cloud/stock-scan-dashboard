@@ -10,7 +10,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from lib.style import apply_dark_theme, ORANGE, GREEN, RED, BLUE, TXT, SUB
+from lib.style import apply_dark_theme, refresh_button, ORANGE, GREEN, RED, BLUE, TXT, SUB
 from lib.data_loader import (
     KQ_SETUPS, load_kq, load_sepa,
     kq_signature, sepa_signature,
@@ -104,7 +104,12 @@ def _render_table(df: pd.DataFrame, title: str):
 
 def render():
     apply_dark_theme()
-    st.title("🔍 Stock Scanning")
+    tc, rc = st.columns([8, 1])
+    with tc:
+        st.title("🔍 Stock Scanning")
+    with rc:
+        # 純 icon refresh 按鈕(靠右)—— 清 cache 重讀 xlsx(雲端需先重部署才讀到新檔)
+        refresh_button(key="refresh_scan", help="清除快取並重新讀取掃描結果")
 
     # ── 載入(快取鍵用 _sig) ──
     kq = load_kq(kq_signature())
