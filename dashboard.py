@@ -13,7 +13,7 @@ from lib.style import apply_dark_theme
 
 from pages import page_scan, page_market
 
-st.set_page_config(page_title="Stock Scan Dashboard", layout="wide",
+st.set_page_config(page_title="市場概覽 & 股票篩選", layout="wide",
                    initial_sidebar_state="expanded")
 apply_dark_theme()
 
@@ -29,7 +29,7 @@ def _page_market():
 
 
 nav = st.navigation([
-    st.Page(_page_market, title="Market Situation", icon="📊", default=True),
-    st.Page(_page_scan,  title="Stock Scanning",  icon="🔍"),
+    st.Page(_page_market, title="市場概覽", icon="📊", default=True),
+    st.Page(_page_scan,  title="股票篩選",  icon="🔍"),
 ])
 nav.run()

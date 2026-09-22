@@ -106,7 +106,7 @@ def render():
     apply_dark_theme()
     tc, rc = st.columns([8, 1])
     with tc:
-        st.title("🔍 Stock Scanning")
+        st.title("🔍 股票篩選")
     with rc:
         # 純 icon refresh 按鈕(靠右)—— 清 cache 重讀 xlsx(雲端需先重部署才讀到新檔)
         refresh_button(key="refresh_scan", help="清除快取並重新讀取掃描結果")

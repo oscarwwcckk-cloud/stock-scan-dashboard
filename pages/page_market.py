@@ -202,7 +202,7 @@ def _render_sentiment(health):
 
     health = index_health() 結果(取 VIX)。F&G 走 load_feargreed(本機 playwright 抓的 JSON)。
     Finviz 廣度走 market_breadth()(雲端 egress 被擋時四項全 None → 該行降級顯示)。"""
-    st.subheader("🌡️ 市場概覽")
+    st.subheader("🌡️ 市場情緒")
     # 情緒面板內:卡片標題(.lbl)放大粗體 + 副標(.sub)放大粗體
     # (不動其他頁面 .lbl/.sub 預設,只此面板 inline 蓋掉)
     LBL_LG = "font-size:15px;font-weight:700"
@@ -293,7 +293,7 @@ def render():
     apply_dark_theme()
     tc, rc = st.columns([8, 1])
     with tc:
-        st.title("📊 Market Situation")
+        st.title("📊 市場概覽")
     with rc:
         # 純 icon refresh 按鈕(靠右)
         refresh_button(key="refresh_market", help="清除快取並重新抓取 yfinance/Finviz/F&G")
