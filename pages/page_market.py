@@ -168,33 +168,46 @@ def _render_sector_rotation():
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
-    st.caption("RS Rating 1-99(越高越強);10d/30d/60d 為相對 benchmark 的超額報酬%(正綠負紅)。")
-    # 分組長條圖:18 板塊 × (10d/30d/60d) 超額報酬,正綠負紅,長度看大小
+    st.caption("RS Rating 1-99(越高越強);氣泡圖:X=10d 短期超額、Y=60d 長期超額、"
+               "色=30d 正綠負紅、大小=RS Rating。右上 = 短長期雙強。")
+    # 氣泡圖:X=10d 短期超額、Y=60d 長期超額、色=30d 正綠負紅、大小=RS Rating
     try:
-        names = df["name"].tolist()
-        periods = [("10d", "rs_10d"), ("30d", "rs_30d"), ("60d", "rs_60d")]
-        fig = go.Figure()
-        for plabel, col in periods:
-            vals = df[col].astype(float).tolist()
-            fig.add_trace(go.Bar(
-                name=plabel, x=names, y=vals,
-                # 每根 bar 依值正負上色:正綠負紅
-                marker_color=[GREEN if v >= 0 else RED for v in vals],
-                hovertemplate=f"{plabel} %{{x}}: %{{y:+.2f}}%<extra></extra>",
-                text=[f"{v:+.1f}" for v in vals], textposition="outside",
-                textfont=dict(size=9, color=SUB)))
+        import plotly.express as px
+        x = df["rs_10d"].astype(float).tolist()
+        y = df["rs_60d"].astype(float).tolist()
+        col30 = df["rs_30d"].astype(float).tolist()
+        size = [max(8, (s or 0) * 1.2) for s in df["rs_rating"].astype(float).tolist()]
+        fig = go.Figure(data=go.Scatter(
+            x=x, y=y, mode="markers+text",
+            text=df["name"], textposition="top center",
+            textfont=dict(size=9, color=SUB),
+            marker=dict(
+                size=size, opacity=0.8, line=dict(width=1, color=BG),
+                # 30d 正綠負紅
+                color=[GREEN if v >= 0 else RED for v in col30]),
+            hovertemplate="<b>%{text}</b><br>"
+                          "10d: %{x:+.2f}% · 60d: %{y:+.2f}%<extra></extra>",
+            showlegend=False))
+        # 零軸線 + 象限分隔(右上=雙強、左下=雙弱)
         fig.update_layout(
-            barmode="group", height=420, margin=dict(l=10, r=10, t=10, b=120),
+            height=520, margin=dict(l=50, r=20, t=20, b=50),
             paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=10),
-            showlegend=True, legend=dict(orientation="h", y=1.08, font=dict(size=9)),
-            bargap=0.35, bargroupgap=0.08,
-            xaxis=dict(tickangle=-40, tickfont=dict(size=9), color=SUB, showgrid=False),
-            yaxis=dict(title="超額報酬 (%)", color=SUB, gridcolor=GRID,
-                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1))
+            xaxis=dict(title="10d 超額報酬 (%) (短期)", color=SUB, gridcolor=GRID,
+                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5),
+            yaxis=dict(title="60d 超額報酬 (%) (長期)", color=SUB, gridcolor=GRID,
+                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5))
+        # 象限標示
+        xmid = 0; ymid = 0
+        xmax, xmin = max(x + [0]), min(x + [0])
+        ymax, ymin = max(y + [0]), min(y + [0])
+        fig.add_annotation(x=xmax, y=ymax, text="↑ 短長期雙強", showarrow=False,
+                            xanchor="right", yanchor="top", font=dict(color=GREEN, size=9))
+        fig.add_annotation(x=xmin, y=ymin, text="↓ 雙弱", showarrow=False,
+                            xanchor="left", yanchor="bottom", font=dict(color=RED, size=9))
         line_hover(fig)
         st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
     except Exception:
-        st.caption("板塊長條圖繪製失敗")
+        st.caption("板塊氣泡圖繪製失敗")
 
 
 def _render_sentiment(health):
