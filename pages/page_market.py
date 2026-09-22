@@ -190,8 +190,10 @@ def _render_sentiment(health):
 
     health = index_health() 結果(取 VIX)。F&G 走 load_feargreed(本機 playwright 抓的 JSON)。
     Finviz 廣度走 market_breadth()(雲端 egress 被擋時四項全 None → 該行降級顯示)。"""
-    st.subheader("🌡️ 市場情緒 / 廣度")
-    # 情緒面板內副標統一:放大 + 粗體(不動其他頁面的 .sub 預設 12px)
+    st.subheader("🌡️ 市場概覽")
+    # 情緒面板內:卡片標題(.lbl)放大粗體 + 副標(.sub)放大粗體
+    # (不動其他頁面 .lbl/.sub 預設,只此面板 inline 蓋掉)
+    LBL_LG = "font-size:15px;font-weight:700"
     SUB_LG = "font-size:14px;font-weight:600"
     keys = ["SPX", "NDX", "DJI"]
     any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)
@@ -205,7 +207,7 @@ def _render_sentiment(health):
     with c1:
         if vix is not None:
             st.markdown(
-                f'<div class="kpi"><div class="lbl">VIX 情緒</div>'
+                f'<div class="kpi"><div class="lbl" style="{LBL_LG}">VIX 情緒</div>'
                 f'<div class="val" style="color:{vcolor(vix)}">{vix:.1f}</div>'
                 f'<div class="sub" style="{SUB_LG}">{vix_label(vix)}</div></div>',
                 unsafe_allow_html=True)
@@ -216,7 +218,7 @@ def _render_sentiment(health):
             val = fg["value"]
             rating = fg.get("rating", "?")
             st.markdown(
-                f'<div class="kpi"><div class="lbl">Fear & Greed Index</div>'
+                f'<div class="kpi"><div class="lbl" style="{LBL_LG}">Fear & Greed Index</div>'
                 f'<div class="val" style="color:{_fg_color(val)}">{val}</div>'
                 f'<div class="sub" style="{SUB_LG}">{rating}</div></div>',
                 unsafe_allow_html=True)
@@ -257,7 +259,7 @@ def _render_sentiment(health):
                 f'<span style="color:{RED}">{lp:.1f}%</span></div>'
             )
             st.markdown(
-                f'<div class="kpi"><div class="lbl">{title}</div>'
+                f'<div class="kpi"><div class="lbl" style="{LBL_LG}">{title}</div>'
                 f'<div class="val" style="color:{hi_col}">{hp:.1f}%</div>'
                 f'{bar}'
                 f'<div class="sub" style="color:{SUB};{SUB_LG}">{hc or 0} / {lc or 0} 檔</div></div>',
