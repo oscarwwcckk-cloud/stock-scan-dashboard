@@ -1,0 +1,20 @@
+# Claude 本機設定(雲端不需要)
+CLAUDE.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 本機專用產物(雲端不需要)
+streamlit.log
+sync_agent.log
+.sync_agent_state.json
+
+# 資料備份(本機安全網)
+*.bak.xlsx
+
+# 注意:data/*.xlsx(kq + sepa 掃描結果)與 refresh_status.json、scan_info.json
+# 是雲端 app 的資料來源,必須進 repo,不可忽略。
+# 因為含 watchlist/掃描結果,repo 一定要設 PRIVATE。

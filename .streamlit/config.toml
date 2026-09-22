@@ -1,0 +1,8 @@
+# 深色主題 — st.dataframe / st.data_editor 表格(canvas 網格,CSS 蓋不到)
+# 仿 futu-dashboard,顏色對齊 lib/style.py 檔頭色票常數。
+[theme]
+base = "dark"
+backgroundColor = "#14171F"          # 頁面底色 BG
+secondaryBackgroundColor = "#1E222B" # 卡片/表格底色 CARD
+textColor = "#FFFFF0"                # 文字 象牙白 TXT
+primaryColor = "#5B8FF9"             # 重點色 BLUE
