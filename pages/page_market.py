@@ -46,34 +46,32 @@ def _index_chart(ohlc, title=""):
     for col in ("open", "high", "low", "close", "volume"):
         if col not in df:
             df[col] = df["close"] if col != "volume" else 0
-    up = df["close"] >= df["open"]                      # 漲(紅)
-    colors = [RED if u else GREEN for u in up]          # futu 配色:紅漲綠跌
+    up = df["close"] >= df["open"]                      # 漲
+    # TradingView 預設:綠漲紅跌
+    UP_C, DN_C = GREEN, RED
 
     ma50 = df["close"].rolling(50, min_periods=1).mean()
-    ma200 = df["close"].rolling(200, min_periods=1).mean() if len(df) >= 30 else None
+
+    def _rgba(hexc, alpha):
+        return f"rgba({int(hexc[1:3],16)},{int(hexc[3:5],16)},{int(hexc[5:7],16)},{alpha})"
 
     fig = go.Figure()
-    # 成交量(放次軸,半透明,顏色隨漲跌)
+    # 成交量(放次軸,半透明,顏色隨漲跌:漲綠跌紅)
     vol_max = float(df["volume"].max()) if df["volume"].max() > 0 else 1
     fig.add_trace(go.Bar(
         x=df.index, y=df["volume"], name="Vol",
-        marker_color=[f"rgba({int(RED[1:3],16)},{int(RED[3:5],16)},{int(RED[5:7],16)},0.35)" if u
-                      else f"rgba({int(GREEN[1:3],16)},{int(GREEN[3:5],16)},{int(GREEN[5:7],16)},0.35)"
-                      for u in up],
+        marker_color=[_rgba(UP_C, 0.35) if u else _rgba(DN_C, 0.35) for u in up],
         yaxis="y2", hovertemplate="Vol: %{y}<extra></extra>", showlegend=False))
-    # K 線
+    # K 線(TradingView 預設:綠漲紅跌)
     fig.add_trace(go.Candlestick(
         x=df.index, open=df["open"], high=df["high"], low=df["low"], close=df["close"],
         name="Price",
-        increasing_line_color=RED, decreasing_line_color=GREEN,
-        increasing_fillcolor=RED, decreasing_fillcolor=GREEN,
+        increasing_line_color=UP_C, decreasing_line_color=DN_C,
+        increasing_fillcolor=UP_C, decreasing_fillcolor=DN_C,
         whiskerwidth=0.4, line=dict(width=0.5)))
-    # MA
+    # MA50
     fig.add_trace(go.Scatter(x=df.index, y=ma50, name="MA50",
                             line=dict(color=ORANGE, width=1.3), mode="lines"))
-    if ma200 is not None:
-        fig.add_trace(go.Scatter(x=df.index, y=ma200, name="MA200",
-                                line=dict(color=SUB, width=1.3, dash="dot"), mode="lines"))
 
     fig.update_layout(
         height=300, margin=dict(l=8, r=8, t=24, b=8),
