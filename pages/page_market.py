@@ -264,7 +264,8 @@ def _render_sentiment(health):
         return f"rgba({int(hexc[1:3],16)},{int(hexc[3:5],16)},{int(hexc[5:7],16)},{a})"
 
     def _pair(col, title, hi, lo, good_when_high=True):
-        """一張卡:大 %(站上/漲/新高,綠)+ 綠紅比例對比條 + 對立 % + 件數。"""
+        """一張卡:大 % = 兩邊較大者(色隨多空:站上/漲/新高方較大=綠,對立方較大=紅)
+        + 綠紅比例對比條(綠=站上/漲/新高、紅=對立)+ 兩端 % + 件數。"""
         with col:
             hp, hc = hi["pct"], hi["count"]
             lp, lc = lo["pct"], lo["count"]
@@ -272,9 +273,13 @@ def _render_sentiment(health):
                 st.metric(title, "—")
                 return
             hp = hp or 0; lp = lp or 0
-            hi_col = GREEN if (hp >= lp) == good_when_high else RED
+            # 大數字顯示「兩邊較大者」:站上/漲/新高方較大→綠(多方),否則紅(空方)
+            big_is_hi = hp >= lp
+            big_val = hp if big_is_hi else lp
+            big_col = GREEN if big_is_hi == good_when_high else RED
             # 對比條:單一 div,linear-gradient 在 hp% 處分界,左綠右紅填滿整條
-            # (即使 hp+lp≠100 如 adv/dec 有 unchanged,仍以 hp 為分界點,兩色各佔一邊)
+            # (綠=站上/漲/新高方 hp、紅=對立方 lp;即使 hp+lp≠100 如 adv/dec 有 unchanged,
+            # 仍以 hp 為分界點,兩色各佔一邊)
             bar = (
                 f'<div style="height:10px;border-radius:5px;margin:6px 0;'
                 f'background:linear-gradient(90deg,'
@@ -287,7 +292,7 @@ def _render_sentiment(health):
             )
             st.markdown(
                 f'<div class="kpi" style="{CARD_GAP}"><div class="lbl" style="{LBL_LG}">{title}</div>'
-                f'<div class="val" style="color:{hi_col}">{hp:.1f}%</div>'
+                f'<div class="val" style="color:{big_col}">{big_val:.1f}%</div>'
                 f'{bar}'
                 f'<div class="sub" style="color:{SUB};{SUB_LG}">{hc or 0} / {lc or 0} 檔</div></div>',
                 unsafe_allow_html=True)
