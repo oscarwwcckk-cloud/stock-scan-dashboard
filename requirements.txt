@@ -1,10 +1,12 @@
-# 對齊 futu-dashboard 已驗證可跑的 pin(Streamlit Cloud + 本機一致)
-streamlit==1.63.0
-pandas==3.0.3
-numpy==2.4.5
-plotly==7.0.0
-openpyxl==3.1.5
-requests==2.32.3
-yfinance==1.3.0
-beautifulsoup4==4.12.3
-lxml==5.2.2
+# 放寬成下限,讓 Streamlit Cloud 依其 Python 環境自動挑相容版
+# (本機用 3.12 裝的是 streamlit1.63/pandas3.0.3/numpy2.4.5/plotly7.0;
+#  雲端若 Python 版不同,pip 會挑該版下能裝的最高版)
+streamlit>=1.38
+pandas>=2.2
+numpy>=1.26
+plotly>=5.24
+openpyxl>=3.1
+requests>=2.32
+yfinance>=0.2.40
+beautifulsoup4>=4.12
+lxml>=5.2
