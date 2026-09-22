@@ -164,7 +164,7 @@ def sector_rs_metrics(
     Compute sector RS vs benchmark.
     rs_score = same 40/20/20/20 weighted formula applied to excess returns.
     rs_Nd = sector return minus benchmark return for that period (excess return %).
-    Returns dict with: rs_score, rs_1d, rs_5d, rs_20d, rs_63d.
+    Returns dict with: rs_score, rs_10d, rs_30d, rs_60d.
     """
     sect = sector_composite_returns(constituent_closes)
     bench = {k: _period_return(benchmark_close, d) for k, d in PERIODS.items()}
@@ -195,10 +195,9 @@ def sector_rs_metrics(
 
     return {
         "rs_score":  round(rs_score, 2) if not np.isnan(rs_score) else None,
-        "rs_63d":    round(excess["3mo"], 2) if not np.isnan(excess["3mo"]) else None,
-        "rs_1d":     excess_n(1),
-        "rs_5d":     excess_n(5),
-        "rs_20d":    excess_n(20),
+        "rs_10d":    excess_n(10),
+        "rs_30d":    excess_n(30),
+        "rs_60d":    excess_n(60),
     }
 
 

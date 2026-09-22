@@ -101,10 +101,9 @@ def sector_rotation() -> list[dict]:
                     "benchmark": bench,
                     "rs_rating": rating,
                     "rs_score": metrics.get("rs_score") if metrics else None,
-                    "rs_1d": metrics.get("rs_1d") if metrics else None,
-                    "rs_5d": metrics.get("rs_5d") if metrics else None,
-                    "rs_20d": metrics.get("rs_20d") if metrics else None,
-                    "rs_63d": metrics.get("rs_63d") if metrics else None,
+                    "rs_10d": metrics.get("rs_10d") if metrics else None,
+                    "rs_30d": metrics.get("rs_30d") if metrics else None,
+                    "rs_60d": metrics.get("rs_60d") if metrics else None,
                     "n": len(cons_closes),
                 })
         rows.sort(key=lambda r: (r["rs_rating"] or 0), reverse=True)

@@ -163,17 +163,17 @@ def _render_sector_rotation():
         return
     df = pd.DataFrame(rows)
     # 表
-    disp = df[["name", "benchmark", "rs_rating", "rs_1d", "rs_5d", "rs_20d", "rs_63d", "n"]].copy()
-    disp.columns = ["Sector", "Bench", "RS", "1d", "5d", "20d", "63d", "N"]
+    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n"]].copy()
+    disp.columns = ["Sector", "Bench", "RS", "10d", "30d", "60d", "N"]
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%.0f%%")})
-    st.caption("RS Rating 1-99(越高越強);1d/5d/20d/63d 為相對 benchmark 的超額報酬%(正綠負紅)。")
+    st.caption("RS Rating 1-99(越高越強);10d/30d/60d 為相對 benchmark 的超額報酬%(正綠負紅)。")
     # 熱力圖
     try:
-        mat = df[["rs_1d", "rs_5d", "rs_20d", "rs_63d"]].astype(float).values
+        mat = df[["rs_10d", "rs_30d", "rs_60d"]].astype(float).values
         fig = go.Figure(data=go.Heatmap(
-            z=mat, x=["1d", "5d", "20d", "63d"],
+            z=mat, x=["10d", "30d", "60d"],
             y=df["name"], colorscale="RdYlGn",
             zmid=0, hovertemplate="%{y} %{x}: %{z:+.2f}%<extra></extra>"))
         fig.update_layout(
