@@ -168,40 +168,35 @@ def _render_sector_rotation():
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
                      "RS Rating", min_value=0, max_value=99, format="%d")})
-    st.caption("RS Rating 1-99(越高越強);熱力圖每格 = 該板塊相對 benchmark 的超額報酬 %(正綠負紅)。")
-    # 熱力圖(清楚版):每格中央大字數值、板塊名左側水平、綠-暗-紅雙色階、格線分明
+    st.caption("RS Rating 1-99(越高越強);漏斗 = 60d 超額報酬由強到弱排序"
+               "(寬度=幅度、綠=跑贏 benchmark、紅=落後、標籤=真實帶號值)。")
+    # 漏斗圖:60d 超額報酬排序。funnel 要正值才畫得出形 → 寬度用絕對值、
+    # 顏色區分正負(綠=跑贏/紅=落後),text 標真實帶號值。由大到小排。
     try:
         import numpy as _np
-        cols = ["rs_10d", "rs_30d", "rs_60d"]
-        mat = df[cols].astype(float).values
-        ylabels = df["name"].tolist()
-        xlabels = ["10d", "30d", "60d"]
-        # 文字標籤:每格顯示 +X.X / -X.X(None 顯示 —)
-        texts = [[("—" if _np.isnan(v) else f"{v:+.1f}") for v in row] for row in mat]
-        # 雙色階:負=紅 → 0=卡片底 → 正=綠(zmid=0 自動對稱)
-        colorscale = [
-            [0.0, "#F5455C"],    # 最負 = RED
-            [0.45, "#7A3A44"],   # 弱負 = 暗紅
-            [0.5, CARD],         # 0 = 卡片底色
-            [0.55, "#2E6B5C"],   # 弱正 = 暗綠
-            [1.0, "#2DD4A7"],    # 最正 = GREEN
-        ]
-        fig = go.Figure(data=go.Heatmap(
-            z=mat, x=xlabels, y=ylabels, colorscale=colorscale, zmid=0,
-            text=texts, texttemplate="%{text}",
-            textfont=dict(size=13, color=TXT, family="monospace"),
-            xgap=3, ygap=3,
-            hovertemplate="<b>%{y}</b><br>%{x} 超額報酬: %{z:+.2f}%<extra></extra>",
-            showscale=False))
+        d = df[["name", "rs_60d"]].dropna().copy()
+        d["rs_60d"] = d["rs_60d"].astype(float)
+        d = d.sort_values("rs_60d", ascending=False)  # 最強在頂
+        names = d["name"].tolist()
+        vals = d["rs_60d"].tolist()
+        widths = [abs(v) if abs(v) > 0.05 else 0.05 for v in vals]  # 防 0 寬
+        colors = [GREEN if v >= 0 else RED for v in vals]
+        labels = [f"{v:+.2f}%" for v in vals]
+        fig = go.Figure(data=go.Funnel(
+            y=names, x=widths,
+            text=labels, textinfo="text",
+            textposition="inside",
+            textfont=dict(size=12, color=TXT),
+            marker=dict(color=colors, line=dict(width=1, color=BG)),
+            hovertemplate="<b>%{y}</b><br>60d 超額報酬: %{text}<extra></extra>",
+            connector=dict(line=dict(color=GRID, width=1))))
         fig.update_layout(
-            height=max(420, 30 * len(df) + 60), margin=dict(l=10, r=10, t=10, b=30),
+            height=max(420, 28 * len(names) + 50), margin=dict(l=10, r=60, t=10, b=30),
             paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=11),
-            xaxis=dict(side="top", tickfont=dict(size=11, color=SUB), showgrid=False),
-            yaxis=dict(autorange="reversed", tickfont=dict(size=11, color=TXT),
-                       showgrid=False))
+            yaxis=dict(autorange="reversed"))  # 最強在最上
         st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
     except Exception:
-        st.caption("板塊熱力圖繪製失敗")
+        st.caption("板塊漏斗圖繪製失敗")
 
 
 def _render_sentiment(health):
