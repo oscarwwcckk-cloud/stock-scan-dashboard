@@ -96,9 +96,9 @@ def _render_constituents(sector_key: str):
             "RS 評分": st.column_config.ProgressColumn(
                 "RS 評分", min_value=0, max_value=99, format="%d"),
             "加權分": st.column_config.NumberColumn("加權分", format="%.2f"),
-            "10日 (%)": st.column_config.NumberColumn("10日 (%)", format="+.2f%%"),
-            "30日 (%)": st.column_config.NumberColumn("30日 (%)", format="+.2f%%"),
-            "60日 (%)": st.column_config.NumberColumn("60日 (%)", format="+.2f%%"),
+            "10日 (%)": st.column_config.NumberColumn("10日 (%)", format="%+.2f%%"),
+            "30日 (%)": st.column_config.NumberColumn("30日 (%)", format="%+.2f%%"),
+            "60日 (%)": st.column_config.NumberColumn("60日 (%)", format="%+.2f%%"),
             "圖表": st.column_config.LinkColumn(
                 "圖表", display_text="📈 圖表", help="查看個股 TradingView 即時圖表"),
         },
