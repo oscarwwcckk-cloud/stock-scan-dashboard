@@ -44,6 +44,16 @@ def _sector_url(key: str = "", ticker: str = "") -> str:
     return "./constituents?" + "&".join(params) if params else "./constituents"
 
 
+def _goto(key: str = "", ticker: str = ""):
+    """同頁導航:設 query params 後 rerun(取代開新分頁的 link_button)。"""
+    st.query_params.clear()
+    if key:
+        st.query_params["sector"] = key
+    if ticker:
+        st.query_params["ticker"] = ticker
+    st.rerun()
+
+
 def _render_overview():
     """板塊總覽卡片頁(default)。"""
     st.title("🏢 板塊成分股")
@@ -64,8 +74,8 @@ def _render_overview():
                 f'<div class="val" style="color:{color}">{rating if rating is not None else "—"}</div>'
                 f'<div class="sub" style="color:{SUB}">RS 評分 · {r.get("n", 0)} 檔 · {r.get("benchmark","")}</div>'
                 f'</div>', unsafe_allow_html=True)
-            st.link_button("成分股 →", url=_sector_url(r["key"]),
-                           use_container_width=True, key=f"ov_{r['key']}")
+            st.button("成分股 →", use_container_width=True, key=f"ov_{r['key']}",
+                      on_click=_goto, kwargs={"key": r["key"]})
 
 
 def _render_constituents(sector_key: str):
@@ -79,7 +89,7 @@ def _render_constituents(sector_key: str):
     bench = data["benchmark"]
     cons = data["constituents"]
     st.title(f"🏢 {name} 成分股")
-    st.link_button("← 板塊總覽", url=_sector_url(), use_container_width=False)
+    st.button("← 板塊總覽", on_click=_goto, use_container_width=False)
     st.caption(f"基准 {bench}　|　成分股 {len(cons)} 檔　|　"
                "RS 評分 1-99(越高越強,vs SPX);報酬為個股絕對漲跌 %。點「📈 圖表」看個股即時走勢。")
 
@@ -90,9 +100,11 @@ def _render_constituents(sector_key: str):
     df = pd.DataFrame(cons)
     disp = df[["ticker", "rs_rating", "rs_score", "r_10d", "r_30d", "r_60d"]].copy()
     disp.columns = ["代碼", "RS 評分", "加權分", "10日 (%)", "30日 (%)", "60日 (%)"]
-    disp["圖表"] = df["ticker"].map(lambda t: _sector_url(sector_key, t))
-    st.dataframe(
+    # 點列即跳個股圖表(同頁導航,取代開新分頁的 LinkColumn)
+    sel_key = "cons_table_select"
+    event = st.dataframe(
         disp, use_container_width=True, hide_index=True,
+        on_select="rerun", selection_mode="single-row", key=sel_key,
         column_config={
             "RS 評分": st.column_config.ProgressColumn(
                 "RS 評分", min_value=0, max_value=99, format="%d"),
@@ -100,10 +112,12 @@ def _render_constituents(sector_key: str):
             "10日 (%)": st.column_config.NumberColumn("10日 (%)", format="%+.2f%%"),
             "30日 (%)": st.column_config.NumberColumn("30日 (%)", format="%+.2f%%"),
             "60日 (%)": st.column_config.NumberColumn("60日 (%)", format="%+.2f%%"),
-            "圖表": st.column_config.LinkColumn(
-                "圖表", display_text="📈 圖表", help="查看個股 TradingView 即時圖表"),
         },
     )
+    rows = (event.selection.rows if event and event.selection else []) or []
+    if rows:
+        tkr = df.iloc[rows[0]]["ticker"]
+        _goto(sector_key, tkr)
 
     # 60 日報酬水平柱圖:升冪(最強在頂)、正綠負紅,零軸分隔
     try:
@@ -146,7 +160,8 @@ def _render_stock_chart(sector_key: str, ticker: str):
     data = sector_constituents_performance(sector_key)
     name = data["name"] if data else sector_key
     st.title(f"📈 {ticker}")
-    st.link_button(f"← {name} 成分股", url=_sector_url(sector_key), use_container_width=False)
+    st.button(f"← {name} 成分股", on_click=_goto, kwargs={"key": sector_key},
+              use_container_width=False)
 
     # 從 cache 資料找該股績效摘要
     perf = None
@@ -165,8 +180,7 @@ def _render_stock_chart(sector_key: str, ticker: str):
                            index=tickers.index(ticker) if ticker in tickers else 0,
                            key="stock_switch")
         if sel != ticker:
-            st.query_params["ticker"] = sel
-            st.rerun()
+            _goto(sector_key, sel)
 
     symbol = tv_symbol(ticker)
     # components.html(真 iframe):TV 官方 embed 的 <script src>{JSON}</script> 模式

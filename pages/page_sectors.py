@@ -30,15 +30,23 @@ def _render_sector_rotation():
     # 表
     disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n", "key"]].copy()
     disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數", "明細"]
-    # 「明細」欄放成分股頁連結(絕對路徑 + query param 帶 sector key)
-    disp["明細"] = disp["明細"].map(lambda k: f"./constituents?sector={k}")
-    st.dataframe(disp, use_container_width=True, hide_index=True,
-                 column_config={
-                     "RS": st.column_config.ProgressColumn(
-                         "RS 評分", min_value=0, max_value=99, format="%d"),
-                     "明細": st.column_config.LinkColumn(
-                         "明細", display_text="成分股", help="點擊查看該板塊成分股明細"),
-                 })
+    disp["明細"] = "點此查看"  # 純提示文字;實際跳轉靠點列(selection),同頁導航
+    st.caption("💡 點表格任一列 → 跳到該板塊成分股明細(同頁)。")
+    sel_key = "sector_table_select"
+    event = st.dataframe(
+        disp, use_container_width=True, hide_index=True,
+        on_select="rerun", selection_mode="single-row", key=sel_key,
+        column_config={
+            "RS": st.column_config.ProgressColumn(
+                "RS 評分", min_value=0, max_value=99, format="%d"),
+            "明細": st.column_config.TextColumn("明細", help="點列跳成分股頁"),
+        })
+    rows = (event.selection.rows if event and event.selection else []) or []
+    if rows:
+        skey = df.iloc[rows[0]]["key"]
+        st.query_params.clear()
+        st.query_params["sector"] = skey
+        st.switch_page("pages/page_constituents.py")
     st.caption("RS 評分 1-99(越高越強);柱形 = 60日超額報酬由強到弱排序"
                "(正=跑贏基准綠、負=落後紅、長度=幅度)。")
     # 水平柱形圖:60d 超額報酬排序,正綠負紅。可正可負(零軸分隔)。
