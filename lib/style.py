@@ -128,6 +128,13 @@ def apply_dark_theme():
   section[data-testid="stSidebar"] .stButton button:hover {{
       border-color:{BLUE} !important; background:#333A47 !important; }}
 
+  /* 側欄 nav 分組標題:隱藏文字+箭頭,只留一條分隔線(取代「板塊分析」標題) */
+  [data-testid="stNavSectionHeader"] {{
+      height:0 !important; min-height:0 !important; padding:0 !important;
+      margin:14px 4px 6px 4px !important; overflow:visible !important;
+      border-top:1px solid {GRID} !important; background:transparent !important; }}
+  [data-testid="stNavSectionHeader"] * {{ visibility:hidden !important; }}
+
   /* 分頁列(深色飛書風):底線分隔、選中象牙白+主色底線 */
   [data-testid="stTabs"] [data-baseweb="tab-list"] {{
       gap:6px; border-bottom:1px solid {GRID}; }}
