@@ -52,12 +52,16 @@ def tv_symbol(ticker: str) -> str:
     return f"{tv}:{t}" if tv else t
 
 
-def embed_html(symbol: str, height: int = 620, interval: str = "D",
+def embed_html(symbol: str, interval: str = "D",
                theme: str = "dark", locale: str = "zh_TW") -> str:
-    """產生 TradingView Advanced Chart widget 完整 HTML(交給 st.components.v1.html 渲染)。
+    """產生 TradingView Advanced Chart widget HTML(交給 st.html(unsafe_allow_javascript=True) 渲染)。
 
     symbol 需 "EXCHANGE:TICKER";未含冒號者 TV 會自行解析。
     interval: D=日、W=週、M=月、60=1小時…;style "1"=蠟燭。
+
+    外層 .tv-chart-wrap 以 aspect-ratio:1/1 強制成正方形(隨視窗寬度自適應),
+    widget 用 autosize:true 填滿該容器。走 st.html(非 iframe)讓 widget script
+    能正確量到容器尺寸(iframe srcdoc 內 autosize 常量不到完整高度)。
     """
     config = {
         "autosize": True,
@@ -74,8 +78,10 @@ def embed_html(symbol: str, height: int = 620, interval: str = "D",
     }
     config_json = json.dumps(config, ensure_ascii=False)
     return f"""
-<div class="tradingview-widget-container" style="height:{height}px;width:100%">
-  <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+<div class="tv-chart-wrap">
+  <div class="tradingview-widget-container" style="height:100%;width:100%">
+    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+  </div>
   <div class="tradingview-widget-copyright">
     <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
       <span class="blue-text">圖表由 TradingView 提供</span>
@@ -86,4 +92,24 @@ def embed_html(symbol: str, height: int = 620, interval: str = "D",
     {config_json}
   </script>
 </div>
+<style>
+  /* 正方形容器:隨可用寬度自適應,最小 480px 高(窄螢幕也能完整顯示) */
+  .tv-chart-wrap {{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    min-height: 480px;
+    background: #131722;
+    border-radius: 12px;
+    overflow: hidden;
+  }}
+  .tv-chart-wrap .tradingview-widget-container,
+  .tv-chart-wrap .tradingview-widget-container__widget {{
+    height: 100% !important; width: 100% !important;
+  }}
+  .tv-chart-wrap .tradingview-widget-copyright {{
+    position: absolute; bottom: 4px; right: 8px; font-size: 10px; opacity: .6;
+  }}
+</style>
 """
+

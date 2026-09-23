@@ -14,7 +14,6 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
 from lib.style import (
     apply_dark_theme, BG, GRID, TXT, SUB, GREEN, ORANGE, RED, _chart_cfg, line_hover,
@@ -169,7 +168,10 @@ def _render_stock_chart(sector_key: str, ticker: str):
             st.rerun()
 
     symbol = tv_symbol(ticker)
-    components.html(embed_html(symbol), height=620, scrolling=False)
+    html = embed_html(symbol)
+    # st.html(unsafe_allow_javascript=True):widget script 在主頁面跑,autosize 能正確量容器
+    # → aspect-ratio 1/1 正方形、隨視窗寬度自適應。1.63 支援此參數。
+    st.html(html, unsafe_allow_javascript=True)
 
 
 def render():
