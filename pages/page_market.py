@@ -18,6 +18,7 @@ from lib.style import (
 from lib.market_service import (
     index_health, market_breadth, breadth_available, feargreed,
 )
+from lib.market_score import compute_market_score
 
 # trend_state → 顏色
 TREND_COLOR = {
@@ -107,6 +108,49 @@ def _index_chart(ohlc, title=""):
     fig.update_traces(selector=dict(type="candlestick"), hoverlabel=dict(bgcolor=CARD))
     line_hover(fig)
     st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
+
+
+def _render_env_score():
+    """市場環境分析 — 總分卡(1-100 + 評語)+ 六項子分數清單。
+
+    總分由 index_health/feargreed/market_breadth/sector_rotation 合成(全快取),
+    單源失敗權重按比例重分配。子分數卡:名稱+分數(色)+權重+細節說明。"""
+    st.subheader("🎯 市場環境分析")
+    r = compute_market_score()
+    if r is None:
+        st.warning("市場環境評分資料不足(所有資料源抓取失敗)。稍後再試。")
+        return
+
+    sub_color = r["sub_color"]
+    # 左:總分大卡;右:子分數清單
+    tc, rc = st.columns([1, 2.2])
+    with tc:
+        st.markdown(
+            f'<div class="kpi" style="text-align:center;min-height:180px;'
+            f'display:flex;flex-direction:column;justify-content:center">'
+            f'<div class="lbl" style="font-size:15px;font-weight:700">市場環境評分</div>'
+            f'<div class="val" style="color:{r["color"]};font-size:54px;'
+            f'font-weight:800;line-height:1.1">{r["total"]}</div>'
+            f'<div class="sub" style="color:{r["color"]};font-size:18px;'
+            f'font-weight:700">{r["label"]}</div>'
+            f'<div class="sub" style="color:{SUB};font-size:11px">滿分 100 · 六項加權</div>'
+            f'</div>', unsafe_allow_html=True)
+    with rc:
+        for s in r["subs"]:
+            sc = s["score"]
+            sc_txt = str(sc) if sc is not None else "—"
+            st.markdown(
+                f'<div style="display:flex;align-items:center;gap:10px;'
+                f'padding:5px 0;border-bottom:1px solid {GRID}">'
+                f'<div style="flex:0 0 110px;color:{TXT};font-weight:600;font-size:13px">'
+                f'{s["name"]}</div>'
+                f'<div style="flex:0 0 46px;text-align:center;color:{sub_color(sc)};'
+                f'font-size:18px;font-weight:800">{sc_txt}</div>'
+                f'<div style="flex:1;color:{SUB};font-size:11.5px">'
+                f'{s["detail"]}　<span style="opacity:.6">(權重 {s["weight"]:.0%})</span></div>'
+                f'</div>', unsafe_allow_html=True)
+    if r["comment"]:
+        st.caption(f"💡 {r['comment']}")
 
 
 def _render_index_cards(health):
@@ -288,6 +332,8 @@ def render():
         # 純 icon refresh 按鈕(靠右)
         refresh_button(key="refresh_market", help="清除快取並重新抓取 yfinance/Finviz/F&G")
     health = index_health()
+    _render_env_score()
+    st.divider()
     _render_index_cards(health)
     st.divider()
     _render_sentiment(health)
