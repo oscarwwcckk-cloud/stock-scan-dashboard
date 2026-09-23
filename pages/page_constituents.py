@@ -14,6 +14,7 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 from lib.style import (
     apply_dark_theme, BG, GRID, TXT, SUB, GREEN, ORANGE, RED, _chart_cfg, line_hover,
@@ -168,9 +169,10 @@ def _render_stock_chart(sector_key: str, ticker: str):
             st.rerun()
 
     symbol = tv_symbol(ticker)
-    # st.iframe(height="content"):iframe 內 <script src> 會正常執行(TV widget 載入),
-    # Streamlit 自動量 widget 容器高度(內嵌 JS 鎖正方形)讓 iframe 貼合。
-    st.iframe(embed_html(symbol), height="content")
+    # components.html(真 iframe):TV 官方 embed 的 <script src>{JSON}</script> 模式
+    # 只有在真 iframe 文件裡才會執行 —— st.html 插入的 script 不執行,widget 會空白。
+    # iframe 固定高,內部 #tv-wrap 100vh 填滿,widget autosize 貼合。
+    components.html(embed_html(symbol), height=640, scrolling=False)
 
 
 def render():
