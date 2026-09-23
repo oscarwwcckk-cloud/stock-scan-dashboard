@@ -27,10 +27,9 @@ def _render_sector_rotation():
         st.warning("板塊强度資料抓取失敗(yfinance 可能限流)。稍後再試。")
         return
     df = pd.DataFrame(rows)
-    # 表
-    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n", "key"]].copy()
-    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數", "明細"]
-    disp["明細"] = "點此查看"  # 純提示文字;實際跳轉靠點列(selection),同頁導航
+    # 表(點列即跳成分股頁;同頁導航,故無明細連結欄)
+    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n"]].copy()
+    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數"]
     st.caption("💡 點表格任一列 → 跳到該板塊成分股明細(同頁)。")
     sel_key = "sector_table_select"
     event = st.dataframe(
@@ -39,7 +38,6 @@ def _render_sector_rotation():
         column_config={
             "RS": st.column_config.ProgressColumn(
                 "RS 評分", min_value=0, max_value=99, format="%d"),
-            "明細": st.column_config.TextColumn("明細", help="點列跳成分股頁"),
         })
     rows = (event.selection.rows if event and event.selection else []) or []
     if rows:
