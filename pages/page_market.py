@@ -189,11 +189,17 @@ def _render_sector_rotation():
         return
     df = pd.DataFrame(rows)
     # 表
-    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n"]].copy()
-    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數"]
+    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n", "key"]].copy()
+    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數", "明細"]
+    # 「明細」欄放成分股頁連結(絕對路徑 + query param 帶 sector key)
+    disp["明細"] = disp["明細"].map(lambda k: f"./constituents?sector={k}")
     st.dataframe(disp, use_container_width=True, hide_index=True,
-                 column_config={"RS": st.column_config.ProgressColumn(
-                     "RS 評分", min_value=0, max_value=99, format="%d")})
+                 column_config={
+                     "RS": st.column_config.ProgressColumn(
+                         "RS 評分", min_value=0, max_value=99, format="%d"),
+                     "明細": st.column_config.LinkColumn(
+                         "明細", display_text="成分股", help="點擊查看該板塊成分股明細"),
+                 })
     st.caption("RS 評分 1-99(越高越強);柱形 = 60日超額報酬由強到弱排序"
                "(正=跑贏基准綠、負=落後紅、長度=幅度)。")
     # 水平柱形圖:60d 超額報酬排序,正綠負紅。可正可負(零軸分隔)。

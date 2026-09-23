@@ -121,6 +121,67 @@ def sector_rotation() -> list[dict]:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def sector_constituents_performance(sector_key: str) -> dict | None:
+    """某板塊成分股的個股績效明細。
+
+    回傳 {sector_key, name, benchmark, group, constituents: [...]} 或 None(板塊不存在)。
+    constituents 每項 {ticker, rs_rating, rs_score, r_10d, r_30d, r_60d},按 rs_rating desc 排序。
+      - rs_rating:個股 Fred6724 RS Rating(1-99),與 sector_rs_rating 同公式但單股(score/SPX*100)。
+      - rs_score:weighted_return 原始 40/20/20/20 加權分(未除 SPX)。
+      - r_Nd:_period_return 個股絕對 N 日報酬(%,非超額)。
+
+    成分股來源同 sector_rotation:tech 顯式清單、traditional 動態抓 SPDR 持倉。
+    抓不到/無成分股 → constituents=[](頁面降級 warning)。
+    """
+    info = SECTOR_MAP.get(sector_key)
+    if info is None:
+        return None
+    bench = info.get("benchmark", "SPY")
+    cons = list(info.get("constituents") or [])
+    if not cons and info.get("etf"):
+        cons = holdings_fetcher.fetch_spdr_holdings(info["etf"])
+    if not cons:
+        return {"sector_key": sector_key, "name": info.get("name", sector_key),
+                "benchmark": bench, "group": info.get("group", ""), "constituents": []}
+    try:
+        closes = yfinance_fetcher.fetch_closes_batch(list(cons) + [bench],
+                                                       period=_SECTOR_PERIOD)
+        bench_close = closes.get(bench)
+        if bench_close is None:
+            bench_close = _safe_close(bench)
+        spx_score = rs_engine.weighted_return(bench_close) if bench_close is not None else None
+        out: list[dict] = []
+        for tkr in cons:
+            s = closes.get(tkr)
+            if s is None or len(s) < 63:
+                continue
+            wr = rs_engine.weighted_return(s)
+            rating = (rs_engine._score_to_rating(wr / spx_score * 100)
+                      if (wr is not None and not np.isnan(wr) and spx_score
+                          and not np.isnan(spx_score) and spx_score > 0) else None)
+
+            def _pct(days: int) -> float | None:
+                # _period_return 已回 % 值(內建 ×100),這裡勿再乘
+                r = rs_engine._period_return(s, days)
+                return round(float(r), 2) if not np.isnan(r) else None
+
+            out.append({
+                "ticker": tkr,
+                "rs_rating": rating,
+                "rs_score": round(float(wr), 2) if (wr is not None and not np.isnan(wr)) else None,
+                "r_10d": _pct(10),
+                "r_30d": _pct(30),
+                "r_60d": _pct(60),
+            })
+        out.sort(key=lambda r: (r["rs_rating"] or 0), reverse=True)
+        return {"sector_key": sector_key, "name": info.get("name", sector_key),
+                "benchmark": bench, "group": info.get("group", ""), "constituents": out}
+    except Exception:
+        return {"sector_key": sector_key, "name": info.get("name", sector_key),
+                "benchmark": bench, "group": info.get("group", ""), "constituents": []}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def market_breadth() -> dict:
     """Finviz 市場廣度。失敗回 _empty_result()(全 None pct),頁面據此顯示 warning。"""
     try:
