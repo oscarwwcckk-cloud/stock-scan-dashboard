@@ -59,28 +59,19 @@ def embed_html(symbol: str, interval: str = "D",
     symbol 需 "EXCHANGE:TICKER";未含冒號者 TV 會自行解析。
     interval: D=日、W=週、M=月、60=1小時…;style "1"=蠟燭。
 
-    必須用 st.components.v1.html() 渲染(真 iframe):TV 官方 embed 是
-    <script src=...>{JSON 設定}</script> 模式(script 讀自身 textContent),
-    只有在真 iframe 文件裡才會執行 —— st.html(dangerouslySetInnerHTML)插入的
-    script 按 HTML 規格不執行,widget 會空白消失。
+    必須用 st.components.v1.html()(真 iframe)渲染。widget 用 TV 官方 tv.js
+    程式化 loader(new TradingView.widget)而非 <script src>{JSON}</script> 的
+    textContent embed 模式 —— 後者在 components.html 的 about:srcdoc iframe 裡
+    async 載入時序不穩:script 載入了卻沒注入 widget iframe(畫面全黑)。
+    loader 明確指定 container_id,DOM ready 後呼叫,時序可控。
     caller 給 iframe 固定高(components.html(height=…)),#tv-wrap 用 100vh 填滿,
     widget autosize 貼合,無需 JS 量高。
     """
-    config = {
-        "autosize": True,
-        "symbol": symbol,
-        "interval": interval,
-        "timezone": "Asia/Hong_Kong",
-        "theme": theme,
-        "style": "1",            # 蠟燭圖
-        "locale": locale,
-        "hide_side_toolbar": False,
-        "allow_symbol_change": False,
-        "withdateranges": True,
-        "support_host": "https://www.tradingview.com",
-    }
-    config_json = json.dumps(config, ensure_ascii=False)
     # #tv-wrap 100vh 填滿 iframe(caller 以 components.html(height=…) 定高)。
+    # 用 TV 官方「程式化 loader」(new TradingView.widget)而非 <script src>{JSON}</script>
+    # 的 textContent embed 模式 —— 後者在 Streamlit components.html 的 about:srcdoc
+    # iframe 裡 async 載入時序不穩:script 載入了卻沒注入 widget iframe(畫面全黑)。
+    # loader 明確指定 container_id + autosize,DOM ready 後呼叫,時序可控。
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -96,7 +87,7 @@ def embed_html(symbol: str, interval: str = "D",
 <body>
 <div id="tv-wrap">
   <div class="tradingview-widget-container">
-    <div class="tradingview-widget-container__widget"></div>
+    <div id="tv-chart" class="tradingview-widget-container__widget"></div>
   </div>
   <div class="tradingview-widget-copyright">
     <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
@@ -104,8 +95,35 @@ def embed_html(symbol: str, interval: str = "D",
     </a>
   </div>
   <script type="text/javascript"
-    src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-    {config_json}
+    src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+  (function() {{
+    function load() {{
+      if (window.TradingView) {{
+        new TradingView.widget({{
+          "container_id": "tv-chart",
+          "autosize": true,
+          "symbol": {json.dumps(symbol)},
+          "interval": {json.dumps(interval)},
+          "timezone": "Asia/Hong_Kong",
+          "theme": {json.dumps(theme)},
+          "style": "1",
+          "locale": {json.dumps(locale)},
+          "hide_side_toolbar": false,
+          "allow_symbol_change": false,
+          "withdateranges": true,
+          "support_host": "https://www.tradingview.com"
+        }});
+      }} else {{
+        setTimeout(load, 200);
+      }}
+    }}
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {{
+      load();
+    }} else {{
+      window.addEventListener('DOMContentLoaded', load);
+    }}
+  }})();
   </script>
 </div>
 </body></html>"""
