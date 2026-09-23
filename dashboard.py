@@ -38,10 +38,16 @@ def _page_constituents():
     page_constituents.render()
 
 
-nav = st.navigation([
-    st.Page(_page_market, title="市場概覽", icon="📊", default=True),
-    st.Page(_page_sectors, title="板塊分析", icon="🏭"),
-    st.Page(_page_scan,  title="股票篩選",  icon="🔍"),
-    st.Page(_page_constituents, title="成分股", icon="🏢", url_path="constituents"),
-])
+nav = st.navigation({
+    # 空字串 section:頁面顯示在分組之前(頂層獨立項)
+    "": [
+        st.Page(_page_market, title="市場概覽", icon="📊", default=True),
+        st.Page(_page_scan,  title="股票篩選",  icon="🔍"),
+    ],
+    # 「板塊分析」分組:板塊分析頁 + 板塊成分頁,sidebar 裡歸在同標題下
+    "板塊分析": [
+        st.Page(_page_sectors, title="板塊分析", icon="🏭"),
+        st.Page(_page_constituents, title="板塊成分", icon="🏢", url_path="constituents"),
+    ],
+})
 nav.run()
