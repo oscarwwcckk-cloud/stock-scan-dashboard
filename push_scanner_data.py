@@ -153,8 +153,13 @@ def main(check_only=False):
 
     # 3) commit + push(帶 rebase 重試)
     try:
-        git("add", "data/kq_scan_results.xlsx", "data/sepa_scan_results.xlsx",
-            "data/scan_info.json", "data/feargreed.json", "refresh_status.json", check=True)
+        # refresh_status.json 可能不存在(上次 sync 後被清/首次跑)——存在才 add,
+        # 否則 git add 會 pathspec 錯誤中斷整個 commit(2026-09-23 實際發生)。
+        add_paths = ["data/kq_scan_results.xlsx", "data/sepa_scan_results.xlsx",
+                     "data/scan_info.json", "data/feargreed.json"]
+        if os.path.isfile(STATUS_FILE):
+            add_paths.append("refresh_status.json")
+        git("add", *add_paths, check=True)
         st = git("status", "--porcelain", check=True)
         if not st.stdout.strip():
             log("  無變更,略過 commit/push")
