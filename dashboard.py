@@ -11,7 +11,7 @@
 import streamlit as st
 from lib.style import apply_dark_theme
 
-from pages import page_scan, page_market, page_constituents
+from pages import page_scan, page_market, page_sectors, page_constituents
 
 st.set_page_config(page_title="市場概覽 & 股票篩選", layout="wide",
                    initial_sidebar_state="expanded")
@@ -28,6 +28,11 @@ def _page_market():
     page_market.render()
 
 
+def _page_sectors():
+    apply_dark_theme()
+    page_sectors.render()
+
+
 def _page_constituents():
     apply_dark_theme()
     page_constituents.render()
@@ -35,6 +40,7 @@ def _page_constituents():
 
 nav = st.navigation([
     st.Page(_page_market, title="市場概覽", icon="📊", default=True),
+    st.Page(_page_sectors, title="板塊分析", icon="🏭"),
     st.Page(_page_scan,  title="股票篩選",  icon="🔍"),
     st.Page(_page_constituents, title="成分股", icon="🏢", url_path="constituents"),
 ])

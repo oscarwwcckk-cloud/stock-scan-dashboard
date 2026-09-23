@@ -16,7 +16,7 @@ from lib.style import (
     ORANGE, BLUE, GREEN, RED, TEAL, _chart_cfg, line_hover,
 )
 from lib.market_service import (
-    index_health, sector_rotation, market_breadth, breadth_available, feargreed,
+    index_health, market_breadth, breadth_available, feargreed,
 )
 
 # trend_state → 顏色
@@ -181,57 +181,6 @@ def _fg_color(value):
     return GREEN
 
 
-def _render_sector_rotation():
-    st.subheader("🏭 板塊强度")
-    rows = sector_rotation()
-    if not rows:
-        st.warning("板塊强度資料抓取失敗(yfinance 可能限流)。稍後再試。")
-        return
-    df = pd.DataFrame(rows)
-    # 表
-    disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n", "key"]].copy()
-    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數", "明細"]
-    # 「明細」欄放成分股頁連結(絕對路徑 + query param 帶 sector key)
-    disp["明細"] = disp["明細"].map(lambda k: f"./constituents?sector={k}")
-    st.dataframe(disp, use_container_width=True, hide_index=True,
-                 column_config={
-                     "RS": st.column_config.ProgressColumn(
-                         "RS 評分", min_value=0, max_value=99, format="%d"),
-                     "明細": st.column_config.LinkColumn(
-                         "明細", display_text="成分股", help="點擊查看該板塊成分股明細"),
-                 })
-    st.caption("RS 評分 1-99(越高越強);柱形 = 60日超額報酬由強到弱排序"
-               "(正=跑贏基准綠、負=落後紅、長度=幅度)。")
-    # 水平柱形圖:60d 超額報酬排序,正綠負紅。可正可負(零軸分隔)。
-    try:
-        d = df[["name", "rs_60d"]].dropna().copy()
-        d["rs_60d"] = d["rs_60d"].astype(float)
-        d = d.sort_values("rs_60d", ascending=True)  # 升冪 → 最強在頂(plotly y 由下而上)
-        names = d["name"].tolist()
-        vals = d["rs_60d"].tolist()
-        colors = [GREEN if v >= 0 else RED for v in vals]
-        labels = [f"{v:+.2f}%" for v in vals]
-        fig = go.Figure(data=go.Bar(
-            y=names, x=vals, orientation="h",
-            marker_color=colors,
-            text=labels, textposition="outside",
-            textfont=dict(size=11, color=SUB),
-            hovertemplate="<b>%{y}</b><br>60日超額報酬: %{x:+.2f}%<extra></extra>",
-            showlegend=False))
-        fig.update_layout(
-            height=max(440, 26 * len(names) + 50), margin=dict(l=10, r=60, t=10, b=30),
-            paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=11),
-            bargap=0.5,
-            xaxis=dict(title="60日超額報酬 (%)", color=SUB, gridcolor=GRID,
-                       zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5,
-                       tickfont=dict(size=10)),
-            yaxis=dict(tickfont=dict(size=11, color=TXT), showgrid=False, autorange=True))
-        line_hover(fig)
-        st.plotly_chart(fig, use_container_width=True, config=_chart_cfg(fig))
-    except Exception:
-        st.caption("板塊柱形圖繪製失敗")
-
-
 def _render_sentiment(health):
     """情緒面板:VIX + Fear & Greed 一行,Finviz 四項廣度一行。
 
@@ -342,5 +291,3 @@ def render():
     _render_index_cards(health)
     st.divider()
     _render_sentiment(health)
-    st.divider()
-    _render_sector_rotation()
