@@ -16,10 +16,7 @@ from lib.style import (
     ORANGE, BLUE, GREEN, RED, TEAL, _chart_cfg, line_hover,
 )
 from lib.market_service import (
-    index_health, sector_rotation, market_breadth, breadth_available,
-)
-from lib.data_loader import (
-    load_feargreed, feargreed_signature,
+    index_health, sector_rotation, market_breadth, breadth_available, feargreed,
 )
 
 # trend_state → 顏色
@@ -30,6 +27,24 @@ TREND_COLOR = {
     "Market in Correction": RED,
     "Bear Market": RED,
     "Insufficient Data": GRID,
+}
+# trend_state → 繁體中文顯示
+TREND_ZH = {
+    "Confirmed Uptrend": "確認上升趨勢",
+    "Uptrend Under Pressure": "上升趨勢承壓",
+    "Recovery Attempt": "嘗試復甦",
+    "Market in Correction": "市場修正中",
+    "Bear Market": "熊市",
+    "Insufficient Data": "資料不足",
+}
+# market_signal(英文句子)→ 繁體中文
+SIGNAL_ZH = {
+    "Not enough history to classify trend": "歷史資料不足以判定趨勢",
+    "Price above MA50 > MA200. Healthy bull market — follow the trend.": "站上 MA50 且 MA50 > MA200,多頭結構健康 — 順勢而為。",
+    "Price pulled below MA50 but remains above MA200. Wait for base to form.": "跌破 MA50 但仍守在 MA200 之上,等待底部形成。",
+    "Price above MA50 but MA50 < MA200 (death cross zone). Needs follow-through day.": "站回 MA50 之上,但 MA50 仍低於 MA200(死亡交叉區),需等待確認日。",
+    "Significant pullback. Price below both MAs. Watch MA200 as support.": "明顯回檔,價格跌破兩條均線,觀察 MA200 支撐。",
+    "Price and MA50 both below MA200. Capital preservation mode.": "價格與 MA50 都在 MA200 之下,進入資金保全模式。",
 }
 
 
@@ -113,14 +128,14 @@ def _render_index_cards(health):
                 f'<div class="kpi"><div class="lbl">{key}</div>'
                 f'<div class="val" style="color:{TXT}">{r.price:.2f}</div>'
                 f'<div class="sub" style="color:{chg_color}">{_fmt_pct(chg)}</div>'
-                f'<div class="sub" style="color:{color};font-weight:600">{r.trend_state}</div>'
+                f'<div class="sub" style="color:{color};font-weight:600">{TREND_ZH.get(r.trend_state, r.trend_state)}</div>'
                 f'</div>', unsafe_allow_html=True)
             st.caption(
                 f"MA50 {r.ma50:.1f}({_fmt_pct(r.pct_from_ma50)}) · "
                 f"MA200 {r.ma200:.1f}({_fmt_pct(r.pct_from_ma200)})\n\n"
-                f"RSI14 {r.rsi14:.1f} · Dist days {r.dist_days}\n\n"
-                f"52w {r.low_52w:.1f}–{r.high_52w:.1f} "
-                f"({_fmt_pct(r.pct_from_52w_high)} from high)"
+                f"RSI14 {r.rsi14:.1f} · 派發日 {r.dist_days} 天\n\n"
+                f"52週區間 {r.low_52w:.1f}–{r.high_52w:.1f} "
+                f"(距高點 {_fmt_pct(r.pct_from_52w_high)})"
             )
             _index_chart(d.get("ohlc"), key)
             st.markdown("")  # 卡間距
@@ -203,7 +218,8 @@ def _render_sector_rotation():
 def _render_sentiment(health):
     """情緒面板:VIX + Fear & Greed 一行,Finviz 四項廣度一行。
 
-    health = index_health() 結果(取 VIX)。F&G 走 load_feargreed(本機 playwright 抓的 JSON)。
+    health = index_health() 結果(取 VIX)。F&G 走 feargreed() 即時抓
+    (CNN dataviz API 優先、本機 playwright fallback)。
     Finviz 廣度走 market_breadth()(雲端 egress 被擋時四項全 None → 該行降級顯示)。"""
     st.subheader("🌡️ 市場情緒")
     # 情緒面板內:卡片標題(.lbl)放大粗體 + 副標(.sub)放大粗體
@@ -216,8 +232,8 @@ def _render_sentiment(health):
     any_vix = next((health.get(k, {}) for k in keys if health.get(k)), None)
     vix = (any_vix or {}).get("vix") if any_vix else None
 
-    # ── Fear & Greed(本機抓的 JSON,可能過時或抓失敗)──
-    fg = load_feargreed(feargreed_signature())
+    # ── Fear & Greed(即時抓 CNN API;🔄 清快取後必是新鮮值)──
+    fg = feargreed()
 
     # ── 第一行:VIX + Fear & Greed ──
     c1, c2 = st.columns(2)
@@ -241,7 +257,7 @@ def _render_sentiment(health):
                 unsafe_allow_html=True)
         else:
             st.metric("CNN Fear & Greed", "—")
-            st.caption("本機未抓取(feargreed.json 不存在或抓失敗)")
+            st.caption("F&G 即時抓取失敗(CNN API 與本機 playwright 都不可用)")
 
     # ── 第二行:Finviz 四項廣度(Adv/Dec · NH/NL · Above SMA50 · Above SMA200)──
     bd = market_breadth()

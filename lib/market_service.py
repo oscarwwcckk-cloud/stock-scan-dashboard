@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from lib import market_analysis, rs_engine, sector_map, finviz_scraper, yfinance_fetcher, holdings_fetcher
+from lib import market_analysis, rs_engine, sector_map, finviz_scraper, yfinance_fetcher, holdings_fetcher, feargreed_fetcher
 from lib.sector_map import SECTOR_MAP, INDEX_TICKERS
 
 # 指數 ticker → 友善鍵
@@ -127,6 +127,13 @@ def market_breadth() -> dict:
         return finviz_scraper.fetch_market_breadth()
     except Exception:
         return finviz_scraper._empty_result()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def feargreed() -> dict:
+    """CNN Fear & Greed 即時抓(dataviz API 優先、本機 playwright fallback)。
+    失敗回含 error 的 dict,頁面據此顯示「抓不到」。"""
+    return feargreed_fetcher.fetch_feargreed_live()
 
 
 def breadth_available(bd: dict) -> bool:
