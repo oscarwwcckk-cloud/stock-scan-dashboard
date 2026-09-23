@@ -168,10 +168,9 @@ def _render_stock_chart(sector_key: str, ticker: str):
             st.rerun()
 
     symbol = tv_symbol(ticker)
-    html = embed_html(symbol)
-    # st.html(unsafe_allow_javascript=True):widget script 在主頁面跑,autosize 能正確量容器
-    # → aspect-ratio 1/1 正方形、隨視窗寬度自適應。1.63 支援此參數。
-    st.html(html, unsafe_allow_javascript=True)
+    # st.iframe(height="content"):iframe 內 <script src> 會正常執行(TV widget 載入),
+    # Streamlit 自動量 widget 容器高度(內嵌 JS 鎖正方形)讓 iframe 貼合。
+    st.iframe(embed_html(symbol), height="content")
 
 
 def render():

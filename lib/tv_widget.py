@@ -54,14 +54,15 @@ def tv_symbol(ticker: str) -> str:
 
 def embed_html(symbol: str, interval: str = "D",
                theme: str = "dark", locale: str = "zh_TW") -> str:
-    """產生 TradingView Advanced Chart widget HTML(交給 st.html(unsafe_allow_javascript=True) 渲染)。
+    """產生 TradingView Advanced Chart widget HTML(交給 st.iframe(height="content") 渲染)。
 
     symbol 需 "EXCHANGE:TICKER";未含冒號者 TV 會自行解析。
     interval: D=日、W=週、M=月、60=1小時…;style "1"=蠟燭。
 
-    外層 .tv-chart-wrap 以 aspect-ratio:1/1 強制成正方形(隨視窗寬度自適應),
-    widget 用 autosize:true 填滿該容器。走 st.html(非 iframe)讓 widget script
-    能正確量到容器尺寸(iframe srcdoc 內 autosize 常量不到完整高度)。
+    用 st.iframe(height="content") iframe:內部 <script src> 會正常執行
+    (st.html 的 dangerouslySetInnerHTML 不跑 script,故改 iframe),
+    Streamlit 自動量 widget 載入後的容器高度讓 iframe 貼合。容器靠內嵌 JS
+    把高度鎖成 = 自身寬度(正方形),widget autosize 填滿。
     """
     config = {
         "autosize": True,
@@ -77,10 +78,23 @@ def embed_html(symbol: str, interval: str = "D",
         "support_host": "https://www.tradingview.com",
     }
     config_json = json.dumps(config, ensure_ascii=False)
-    return f"""
-<div class="tv-chart-wrap">
-  <div class="tradingview-widget-container" style="height:100%;width:100%">
-    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+    # #tv-wrap 高度由 JS 設為其寬度(正方形,至少 480px),widget autosize 填滿。
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body {{ margin:0; padding:0; background:#131722; }}
+  #tv-wrap {{ position:relative; width:100%; min-height:480px; background:#131722;
+              overflow:hidden; }}
+  #tv-wrap .tradingview-widget-container,
+  #tv-wrap .tradingview-widget-container__widget {{ height:100% !important; width:100% !important; }}
+  #tv-wrap .tradingview-widget-copyright {{ position:absolute; bottom:4px; right:8px;
+              font-size:10px; opacity:.55; }}
+  #tv-wrap .tradingview-widget-copyright a {{ color:#2962ff; text-decoration:none; }}
+</style></head>
+<body>
+<div id="tv-wrap">
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
   </div>
   <div class="tradingview-widget-copyright">
     <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
@@ -92,24 +106,22 @@ def embed_html(symbol: str, interval: str = "D",
     {config_json}
   </script>
 </div>
-<style>
-  /* 正方形容器:隨可用寬度自適應,最小 480px 高(窄螢幕也能完整顯示) */
-  .tv-chart-wrap {{
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    min-height: 480px;
-    background: #131722;
-    border-radius: 12px;
-    overflow: hidden;
-  }}
-  .tv-chart-wrap .tradingview-widget-container,
-  .tv-chart-wrap .tradingview-widget-container__widget {{
-    height: 100% !important; width: 100% !important;
-  }}
-  .tv-chart-wrap .tradingview-widget-copyright {{
-    position: absolute; bottom: 4px; right: 8px; font-size: 10px; opacity: .6;
-  }}
-</style>
-"""
+<script>
+  // 把容器高度鎖成 = 寬度(正方形,至少 480);widget 載入/縮放後重算。
+  (function() {{
+    var wrap = document.getElementById('tv-wrap');
+    function square() {{
+      var w = wrap.clientWidth || 480;
+      wrap.style.height = Math.max(w, 480) + 'px';
+    }}
+    square();
+    window.addEventListener('load', square);
+    window.addEventListener('resize', square);
+    // TV widget 非同步載入後也要重算一次,容器才會被撐開後量到
+    setTimeout(square, 800);
+    setTimeout(square, 2000);
+  }})();
+</script>
+</body></html>"""
+
 
