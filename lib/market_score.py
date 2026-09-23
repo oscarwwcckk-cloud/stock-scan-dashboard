@@ -6,12 +6,12 @@
                   站上雙均線=100、跌破 MA50(中短期趨勢轉弱)=55、
                   跌破 MA200(長期趨勢轉弱)=40、雙破(無支撐,可能熊市開端)=15
   VIX       15% — <15 極度樂觀(自滿微扣)、<20 平穩偏多、<25 謹慎、≥25 恐慌重扣
-  F&G       15% — 極度恐懼重扣、極度貪婪過熱略扣
-  市場廣度  15% — Finviz 全市場 % 站上 SMA50/SMA200(抓「指數在線上但個股先跌」背離)
+  F&G       11% — 極度恐懼重扣、極度貪婪過熱略扣
+  市場廣度  12% — Finviz 全市場 % 站上 SMA50/SMA200(抓「指數在線上但個股先跌」背離)
   加權背離  10% — 市值加權(QQQ/SPY)vs 等權(QQQE/RSP)20 日報酬背離:
                   市值加權漲但等權跌=漲勢只來自少數大權值股(頭重腳輕,不健康)
   板塊廣度   7% — 18 板塊中 RS≥70 佔比(漲勢收窄=危險)
-  派發日     8% — SPX dist_days(O'Neil:機構出貨頻率)
+  派發日    15% — SPX dist_days(O'Neil:機構出貨頻率,訊號性強故權重提高)
 
 子分數缺資料(雲端單源被擋)時,權重按比例重分配給其餘可用項,總分不炸。
 資料多來自已快取 service(index_health/feargreed/market_breadth/sector_rotation);
@@ -224,11 +224,11 @@ def _dist_sub(health: dict) -> tuple[int | None, str]:
 _SUB_DEFS = [  # (顯示名, 權重, 計算函式(吃 ctx))
     ("指數趨勢", 0.30, lambda c: _index_sub(c["health"])),
     ("VIX",      0.15, lambda c: _vix_sub(c["vix"])),
-    ("Fear & Greed", 0.15, lambda c: _fg_sub(c["fg"])),
-    ("市場廣度", 0.15, lambda c: _breadth_sub(c["bd"])),
+    ("Fear & Greed", 0.11, lambda c: _fg_sub(c["fg"])),
+    ("市場廣度", 0.12, lambda c: _breadth_sub(c["bd"])),
     ("加權背離", 0.10, lambda c: _capw_sub()),
     ("板塊 RS 廣度", 0.07, lambda c: _sector_sub()),
-    ("派發日",   0.08, lambda c: _dist_sub(c["health"])),
+    ("派發日",   0.15, lambda c: _dist_sub(c["health"])),
 ]
 
 
