@@ -40,6 +40,35 @@ SEPA_PATTERN_FILTERS = [
     ("VCP Contractions", "<="), ("Base Depth%", "<="),
 ]
 
+# 欄位名 → 繁體中文顯示名(slider 標籤與表格表頭共用;未列出的欄保留原文)
+COL_ZH: dict[str, str] = {
+    "Ticker": "代碼", "Rank": "排名",
+    "Price": "價格", "PreMkt Price": "盤前價格",
+    "PreMkt Gap%": "盤前跳空%", "PreMkt Vol": "盤前量",
+    "Avg Vol 50d": "50日均量", "ADR 20%": "20日日均振幅",
+    "Pole%": "旗桿%", "Flag Drawdown%": "旗形回撤%",
+    "Vol Contract%": "量縮%", "Quality": "品質分",
+    "Consol DD%": "盤整回撤%", "Prior Move%": "前波漲幅%",
+    "Breakout VolX": "突破量倍數", "Stop%": "停損%",
+    "Contractions": "收縮次數", "Base Depth%": "底部深度%",
+    "Px vs Pivot%": "距樞紐%", "Vol Dryup%": "量乾涸%",
+    "Cup Depth%": "杯深%", "Handle Depth%": "柄深%",
+    "Handle Days": "柄天數", "Potential%": "潛在漲幅%",
+    "Bottom Diff%": "雙底差異%", "Rebound%": "反彈%",
+    "Prior Decline%": "前波跌幅%", "Base Duration (bars)": "底部長度(K棒)",
+    "Tight Range%": "緊密區間%", "IPO Decline%": "IPO 跌幅%",
+    "Correction%": "回檔%", "Base Range%": "底部區間%",
+    "% from Buy Point": "距買點%", "RS Rating": "RS 評分",
+    "J.Law Score": "J.Law 評分", "Base Amplitude%": "底部振幅%",
+    "VCP Contractions": "VCP 收縮次數",
+}
+# 比較符號顯示:>= → ≥、<= → ≤
+OP_ZH = {">=": "≥", "<=": "≤"}
+
+
+def _zh(col: str) -> str:
+    return COL_ZH.get(col, col)
+
 
 def _num_range(df: pd.DataFrame, col: str):
     """回傳該數值欄的 (min, max),容錯空/非數值。"""
@@ -65,7 +94,7 @@ def _slider(df: pd.DataFrame, col: str, op: str, key: str):
         lo, hi = int(lo), int(hi)
     # 預設值:">="取 min(不篩掉任何),"<="取 max(不篩掉任何)
     default = lo if op == ">=" else hi
-    label = f"{col} {op}"
+    label = f"{_zh(col)} {OP_ZH.get(op, op)}"
     return st.slider(label, lo, hi, default, step=step, key=key)
 
 
@@ -89,15 +118,17 @@ def _price_col(df: pd.DataFrame) -> str | None:
 
 
 def _render_table(df: pd.DataFrame, title: str):
-    st.caption(f"**{len(df)}** of {len(df)} matches" if False else f"**{len(df)}** matches — {title}")
+    st.caption(f"**{len(df)}** 筆符合 — {title}")
     if df.empty:
-        st.info("No rows pass the current filters.")
+        st.info("目前篩選條件下無資料。")
         return
     show = df.copy()
     # 嘗試把 Rank/Ticker 放前面
     front = [c for c in ("Rank", "Ticker") if c in show.columns]
     rest = [c for c in show.columns if c not in front]
     show = show[front + rest]
+    # 欄名中文化顯示(原名保留於資料,僅 rename 作表頭)
+    show = show.rename(columns={c: _zh(c) for c in show.columns if c in COL_ZH})
     st.dataframe(show, use_container_width=True, hide_index=True)
     st.download_button("⬇ 下載篩選結果 CSV", show.to_csv(index=False).encode(),
                        file_name=f"{title.replace(' ','_')}.csv", mime="text/csv")
@@ -143,13 +174,13 @@ def render():
         "若要擴大結果,需回本機調整 scanner 的 `config.py` 門檻後重跑。"
     )
 
-    tab_kq, tab_sepa = st.tabs(["KQ Setups", "SEPA"])
+    tab_kq, tab_sepa = st.tabs(["KQ 型態", "SEPA"])
 
     # ── KQ ──
     with tab_kq:
-        setup_names = [f"{disp}　({kq[sheet].shape[0]} hits)" if sheet in kq else f"{disp}　(0 hits)"
+        setup_names = [f"{disp}　({kq[sheet].shape[0]} 筆)" if sheet in kq else f"{disp}　(0 筆)"
                        for sheet, disp in KQ_SETUPS]
-        sel = st.selectbox("選擇 setup", range(len(KQ_SETUPS)),
+        sel = st.selectbox("選擇型態", range(len(KQ_SETUPS)),
                            format_func=lambda i: setup_names[i], key="kq_setup")
         sheet, disp = KQ_SETUPS[sel]
         df = kq.get(sheet, pd.DataFrame())
@@ -169,7 +200,7 @@ def render():
                 v = _slider(df, col, ">=", f"kq_{col}")
                 if v is not None:
                     vals[col] = (">=", v)
-            st.markdown("**Setup 專屬**")
+            st.markdown("**型態專屬條件**")
             for col, op in KQ_SETUP_FILTERS.get(sheet, []):
                 v = _slider(df, col, op, f"kq_{sheet}_{col}")
                 if v is not None:
@@ -181,10 +212,10 @@ def render():
 
     # ── SEPA ──
     with tab_sepa:
-        sub_t1, sub_t2 = st.tabs(["SEPA Results", "Pattern Setups"])
+        sub_t1, sub_t2 = st.tabs(["SEPA 篩選結果", "型態進場點"])
         for sub_tab, sheet, filters, title in [
-            (sub_t1, "SEPA Results", SEPA_RESULTS_FILTERS, "SEPA Results"),
-            (sub_t2, "Pattern Setups", SEPA_PATTERN_FILTERS, "Pattern Setups"),
+            (sub_t1, "SEPA Results", SEPA_RESULTS_FILTERS, "SEPA 篩選結果"),
+            (sub_t2, "Pattern Setups", SEPA_PATTERN_FILTERS, "型態進場點"),
         ]:
             with sub_tab:
                 df = sepa.get(sheet, pd.DataFrame())

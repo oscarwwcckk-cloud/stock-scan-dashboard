@@ -7,7 +7,7 @@ Tech-group sectors benchmark vs QQQ; traditional-group vs SPY.
 SECTOR_MAP: dict[str, dict] = {
     # ── AI / Tech (benchmark: QQQ) ───────────────────────────────────────────
     "ai_semiconductors": {
-        "name": "AI Semiconductors",
+        "name": "AI 半導體",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -17,7 +17,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "ai_data_centers": {
-        "name": "AI Data Centers & Infrastructure",
+        "name": "AI 資料中心與基礎設施",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -26,7 +26,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "ai_software": {
-        "name": "AI Software & Platforms",
+        "name": "AI 軟體與平台",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -35,7 +35,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "cloud_computing": {
-        "name": "Cloud Computing",
+        "name": "雲端運算",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -44,7 +44,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "ai_networking": {
-        "name": "AI Networking",
+        "name": "AI 網通",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -53,7 +53,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "cybersecurity": {
-        "name": "Cybersecurity",
+        "name": "網路安全",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -62,7 +62,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "enterprise_software": {
-        "name": "Enterprise Software",
+        "name": "企業軟體",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -71,7 +71,7 @@ SECTOR_MAP: dict[str, dict] = {
         ],
     },
     "fintech": {
-        "name": "Fintech",
+        "name": "金融科技",
         "benchmark": "QQQ",
         "group": "tech",
         "constituents": [
@@ -83,70 +83,70 @@ SECTOR_MAP: dict[str, dict] = {
     # 成分股來自 SPDR 板塊 ETF 每日持倉(holdings_fetcher 動態抓),永遠新鮮。
     # etf 欄 = 該板塊對應的 SPDR 板塊 ETF ticker。
     "healthcare": {
-        "name": "Healthcare & Biotech",
+        "name": "醫療與生技",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLV",
         "yfinance_sectors": ["Healthcare"],
     },
     "financials": {
-        "name": "Financials",
+        "name": "金融",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLF",
         "yfinance_sectors": ["Financial Services"],
     },
     "energy": {
-        "name": "Energy",
+        "name": "能源",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLE",
         "yfinance_sectors": ["Energy"],
     },
     "industrials": {
-        "name": "Industrials",
+        "name": "工業",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLI",
         "yfinance_sectors": ["Industrials"],
     },
     "consumer_discretionary": {
-        "name": "Consumer Discretionary",
+        "name": "非必需消費",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLY",
         "yfinance_sectors": ["Consumer Cyclical"],
     },
     "consumer_staples": {
-        "name": "Consumer Staples",
+        "name": "必需消費",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLP",
         "yfinance_sectors": ["Consumer Defensive"],
     },
     "materials": {
-        "name": "Materials & Mining",
+        "name": "原物料與礦業",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLB",
         "yfinance_sectors": ["Basic Materials"],
     },
     "real_estate": {
-        "name": "Real Estate",
+        "name": "不動產",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLRE",
         "yfinance_sectors": ["Real Estate"],
     },
     "utilities": {
-        "name": "Utilities",
+        "name": "公用事業",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLU",
         "yfinance_sectors": ["Utilities"],
     },
     "communication": {
-        "name": "Communication Services",
+        "name": "通信服務",
         "benchmark": "SPY",
         "group": "traditional",
         "etf": "XLC",

@@ -155,6 +155,17 @@ def vix_label(vix):
     return "恐慌/避險升溫"
 
 
+# Fear & Greed rating(英文)→ 繁體中文
+FG_RATING_ZH = {
+    "Extreme Fear": "極度恐懼",
+    "Fear": "恐懼",
+    "Neutral": "中性",
+    "Greed": "貪婪",
+    "Extreme Greed": "極度貪婪",
+    "?": "—",
+}
+
+
 def _fg_color(value):
     """F&G 值 0-100 → 色(0 恐懼紅,50 中性,100 貪婪綠)。"""
     if value is None:
@@ -179,12 +190,12 @@ def _render_sector_rotation():
     df = pd.DataFrame(rows)
     # 表
     disp = df[["name", "benchmark", "rs_rating", "rs_10d", "rs_30d", "rs_60d", "n"]].copy()
-    disp.columns = ["Sector", "Bench", "RS", "10d (%)", "30d (%)", "60d (%)", "N"]
+    disp.columns = ["板塊", "基准", "RS", "10日 (%)", "30日 (%)", "60日 (%)", "檔數"]
     st.dataframe(disp, use_container_width=True, hide_index=True,
                  column_config={"RS": st.column_config.ProgressColumn(
-                     "RS Rating", min_value=0, max_value=99, format="%d")})
-    st.caption("RS Rating 1-99(越高越強);柱形 = 60d 超額報酬由強到弱排序"
-               "(正=跑贏 benchmark 綠、負=落後紅、長度=幅度)。")
+                     "RS 評分", min_value=0, max_value=99, format="%d")})
+    st.caption("RS 評分 1-99(越高越強);柱形 = 60日超額報酬由強到弱排序"
+               "(正=跑贏基准綠、負=落後紅、長度=幅度)。")
     # 水平柱形圖:60d 超額報酬排序,正綠負紅。可正可負(零軸分隔)。
     try:
         d = df[["name", "rs_60d"]].dropna().copy()
@@ -199,13 +210,13 @@ def _render_sector_rotation():
             marker_color=colors,
             text=labels, textposition="outside",
             textfont=dict(size=11, color=SUB),
-            hovertemplate="<b>%{y}</b><br>60d 超額報酬: %{x:+.2f}%<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>60日超額報酬: %{x:+.2f}%<extra></extra>",
             showlegend=False))
         fig.update_layout(
             height=max(440, 26 * len(names) + 50), margin=dict(l=10, r=60, t=10, b=30),
             paper_bgcolor=BG, plot_bgcolor=BG, font=dict(color=TXT, size=11),
             bargap=0.5,
-            xaxis=dict(title="60d 超額報酬 (%)", color=SUB, gridcolor=GRID,
+            xaxis=dict(title="60日超額報酬 (%)", color=SUB, gridcolor=GRID,
                        zeroline=True, zerolinecolor=GRID, zerolinewidth=1.5,
                        tickfont=dict(size=10)),
             yaxis=dict(tickfont=dict(size=11, color=TXT), showgrid=False, autorange=True))
@@ -249,7 +260,7 @@ def _render_sentiment(health):
     with c2:
         if fg and fg.get("value") is not None:
             val = fg["value"]
-            rating = fg.get("rating", "?")
+            rating = FG_RATING_ZH.get(fg.get("rating", "?"), fg.get("rating", "?"))
             st.markdown(
                 f'<div class="kpi" style="{CARD_GAP}"><div class="lbl" style="{LBL_LG}">Fear & Greed Index</div>'
                 f'<div class="val" style="color:{_fg_color(val)}">{val}</div>'
