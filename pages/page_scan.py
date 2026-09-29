@@ -141,18 +141,27 @@ def render():
         st.title("🔍 股票篩選")
     with rc:
         # 純 icon refresh 按鈕(靠右)。
-        # 本機(OpenD 連得上):重跑 kq-scanner 產新 xlsx → copy 進 data/ → 清快取重讀。
-        # 雲端(連不到 OpenD):只清快取(讀回 committed xlsx;要新資料需先 push 觸發重部署)。
+        # 本機(~/kq-scanner 存在):重跑 scanner → copy 進 data/ → push 上雲 → 清快取重讀。
+        #   OpenD 沒開時明確報錯(不默默降級 —— 那會讓人誤以為按了沒反應)。
+        # 雲端:清快取讀回最近 push 的 committed xlsx;新資料靠本機排程/重掃 push。
         local = local_rescan.is_local()
-        help_txt = ("本機:重跑 kq-scanner 並重讀最新結果(約數分鐘)"
-                    if local else "雲端:僅清快取;新資料需先 push 觸發重部署")
+        if local:
+            opend = local_rescan.opend_up()
+            help_txt = ("重跑 kq-scanner、上雲並重讀最新結果(約數分鐘)"
+                        if opend else "Futu OpenD 未啟動 —— 開 OpenD 後才能重掃")
+        else:
+            help_txt = "雲端:重讀最近 push 的掃描結果;新掃描由本機排程/重掃 push 後出現"
         if st.button("🔄", key="refresh_scan", help=help_txt,
                      use_container_width=False):
             if local:
-                with st.spinner("本機重掃中(跑 kq-scanner,約數分鐘)…"):
-                    ok, msg = local_rescan.run_scan()
+                if not local_rescan.opend_up():
+                    st.error("⚠️ Futu OpenD 未啟動(127.0.0.1:11111 連不上),無法重掃。"
+                             "請先開啟 Futu OpenD 再按 🔄。")
+                    st.stop()
+                with st.spinner("本機重掃中(跑 kq-scanner → 上雲,約數分鐘)…"):
+                    ok, msg = local_rescan.rescan_and_push()
                     if ok:
-                        local_rescan.copy_results()
+                        st.success(msg)
                     else:
                         st.error(f"重掃失敗:{msg}")
                         st.stop()
