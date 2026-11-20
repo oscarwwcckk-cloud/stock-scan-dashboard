@@ -1,15 +1,15 @@
 {
-  "synced_at": "2026-11-19T20:51:48",
-  "kq_scan_date": "2026-11-19 20:51:21",
+  "synced_at": "2026-11-20T20:51:37",
+  "kq_scan_date": "2026-11-20 20:51:10",
   "sepa_scan_date": "2026-07-23 18:39",
   "kq_rows": {
-    "EP Results": 65,
+    "EP Results": 12,
     "HTF Results": 12,
-    "Breakout Results": 34,
-    "VCP Results": 51,
-    "CWH Results": 18,
-    "Double Bottom": 64,
-    "IPO Base": 4,
+    "Breakout Results": 24,
+    "VCP Results": 54,
+    "CWH Results": 16,
+    "Double Bottom": 61,
+    "IPO Base": 1,
     "Flat Base": 0,
     "Scan Info": 12
   },
